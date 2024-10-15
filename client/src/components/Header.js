@@ -25,7 +25,7 @@ export default function Header() {
             TerrierConnect
           </Typography>
           <Button color="inherit">Login</Button>
-	  <Button color="inherit">Sign up</Button>
+          <Button color="inherit">Sign up</Button>
         </Toolbar>
       </AppBar>
     </Box>

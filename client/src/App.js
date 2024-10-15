@@ -1,6 +1,6 @@
 import "./App.css";
 import Header from "./components/Header";
-import Intro from "./components/Detail";
+import MapView from "./components/Detail";
 
 function App() {
   return (
@@ -9,7 +9,7 @@ function App() {
         <Header />
       </header>
       <div>
-        <Intro />
+        <MapView />
       </div>
     </div>
   );

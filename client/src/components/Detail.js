@@ -8,7 +8,7 @@ import {
   Marker,
 } from "@vis.gl/react-google-maps";
 
-export default function Intro() {
+export default function MapView() {
   const position = { lat: 42.34671555580396, lng: -71.09712751258535 };
   const [open, setOpen] = useState(false);
 
