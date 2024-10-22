@@ -1,0 +1,41 @@
+version: "3.8"
+
+services:
+  client:
+    build:
+      context: ./client
+      dockerfile: dockerfile
+    ports:
+      - "3000:3000"
+    stdin_open: true
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    volumes:
+      - ./client:/app
+    depends_on:
+      - server
+
+  server:
+    build:
+      context: ./server
+      dockerfile: dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./server:/app
+    environment:
+      - DEBUG=1
+    depends_on:
+      - db
+
+  db:
+    image: postgres:13
+    environment:
+      POSTGRES_DB: terrierdb
+      POSTGRES_USER: terrier
+      POSTGRES_PASSWORD: terrierpass
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+volumes:
+  db_data:
