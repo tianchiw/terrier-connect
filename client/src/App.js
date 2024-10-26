@@ -1,15 +1,18 @@
 import "./App.css";
 import Header from "./components/Header";
-import MapView from "./components/Detail";
+import Index from "./components/Index";
+import { useState } from "react";
 
 function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
   return (
     <div className="App">
-      <header className="App-header">
-        <Header />
-      </header>
       <div>
-        <MapView />
+        <header className="App-header">{isLoggedIn ? <Header /> : null}</header>
+      </div>
+      <div>
+        <Index />
       </div>
     </div>
   );
