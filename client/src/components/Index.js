@@ -1,11 +1,15 @@
 import * as React from "react";
 import Box from "@mui/material/Box";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import TextField from "@mui/material/TextField";
-import { Button, Typography } from "@mui/material";
-import Divider from "@mui/material/Divider";
+import { Button, Typography, Divider, Modal } from "@mui/material";
 
 export default function LoginForm() {
+  const [open, setOpen] = React.useState(false);
+
+  const handleOpen = () => setOpen(true);
+  const handleClose = () => setOpen(false);
+
   return (
     <Box
       component="form"
@@ -32,7 +36,6 @@ export default function LoginForm() {
             flexDirection: "column",
             justifyContent: "center",
           }}
-          size={6}
         >
           <Typography
             variant="h3"
@@ -62,7 +65,6 @@ export default function LoginForm() {
             flexDirection: "column",
             alignItems: "center",
           }}
-          size={6}
         >
           <TextField
             required
@@ -84,13 +86,13 @@ export default function LoginForm() {
             fullWidth
             sx={{
               marginTop: 2,
-              backgroundColor: "#d32f2f", // Red color for the button
+              backgroundColor: "#d32f2f",
               color: "#fff",
               padding: "10px 0",
               fontSize: "16px",
               fontWeight: "bold",
               "&:hover": {
-                backgroundColor: "#c62828", // Darker red on hover
+                backgroundColor: "#c62828",
               },
             }}
           >
@@ -111,6 +113,7 @@ export default function LoginForm() {
           <Button
             variant="contained"
             fullWidth
+            onClick={handleOpen}
             sx={{
               backgroundColor: "#42b72a",
               color: "#fff",
@@ -126,6 +129,65 @@ export default function LoginForm() {
           </Button>
         </Grid>
       </Grid>
+
+      {/* Sign Up Modal */}
+      <Modal open={open} onClose={handleClose} aria-labelledby="sign-up-modal">
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 400,
+            bgcolor: "background.paper",
+            boxShadow: 24,
+            p: 4,
+            borderRadius: 1,
+          }}
+        >
+          <Typography
+            id="sign-up-modal"
+            variant="h5"
+            sx={{ fontWeight: "bold", mb: 2 }}
+          >
+            Sign Up
+          </Typography>
+          <TextField required label="Full Name" margin="dense" fullWidth />
+          <TextField required label="BU Email" margin="dense" fullWidth />
+          <TextField
+            required
+            label="Password"
+            type="password"
+            margin="dense"
+            fullWidth
+          />
+          <TextField
+            required
+            label="Confirm Password"
+            type="password"
+            margin="dense"
+            fullWidth
+          />
+          <Button
+            variant="contained"
+            fullWidth
+            sx={{
+              marginTop: 2,
+              backgroundColor: "#42b72a",
+              color: "#fff",
+              padding: "10px 0",
+              fontSize: "16px",
+              fontWeight: "bold",
+              "&:hover": {
+                backgroundColor: "#36a420",
+              },
+            }}
+            onClick={handleClose}
+          >
+            Sign Up
+          </Button>
+        </Box>
+      </Modal>
     </Box>
   );
 }
