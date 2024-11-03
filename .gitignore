@@ -74,6 +74,7 @@ target/
 
 # Django
 .venv
+/*/venv
 *.log
 *.pot
 *.pyc
