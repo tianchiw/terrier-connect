@@ -38,7 +38,8 @@ ALLOWED_HOSTS = []
 INSTALLED_APPS = [
     # Add the apps to the INSTALLED_APPS list, if you have created any
     "hashtags.apps.HashtagsConfig",
-    "users.apps.UsersConfig",
+    "users.apps.UsersConfig", 
+    "posts.apps.PostsConfig",
     "rest_framework",
     "rest_framework_simplejwt",
     "django.contrib.admin",
@@ -47,6 +48,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+
 ]
 
 MIDDLEWARE = [
