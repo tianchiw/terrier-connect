@@ -1,6 +1,5 @@
 from django.db import models
 from users.models import User
-from hashtags.models import Hashtag
 
 class Post(models.Model):
     content = models.TextField()
@@ -14,10 +13,3 @@ class Post(models.Model):
     def __str__(self):
         return f"Post {self.id} by {self.author.display_name}"
 
-class PostHashtagRel(models.Model):
-    post = models.ForeignKey(Post, on_delete=models.CASCADE)
-    hashtag = models.ForeignKey(Hashtag, on_delete=models.CASCADE)
-    created_time = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"Post {self.post.id} tagged with {self.hashtag.hashtag_text}"

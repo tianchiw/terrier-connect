@@ -2,7 +2,7 @@ from django.shortcuts import render
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from rest_framework import status
-from hashtags.models import Hashtag, Post_hashtag_rel
+from hashtags.models import Hashtag, PostHashtagRel
 from hashtags.serializer import HashtagSerializer
 from users.decorators import jwt_required
 import jwt
@@ -107,15 +107,15 @@ def add_post_hashtags_rel_by_ids(request):
     for hashtag_id in hashtag_ids:
         if not Hashtag.objects.filter(id=hashtag_id).exists():
             return Response({'error': f'Hashtag with id {hashtag_id} does not exist'}, status=status.HTTP_400_BAD_REQUEST)
-        post_hashtag_rels.append(Post_hashtag_rel(post_id=post_id, hashtag_id=hashtag_id))
-    Post_hashtag_rel.objects.bulk_create(post_hashtag_rels)
+        post_hashtag_rels.append(PostHashtagRel(post_id=post_id, hashtag_id=hashtag_id))
+    PostHashtagRel.objects.bulk_create(post_hashtag_rels)
     
     return Response({'message': 'Post-Hashtag relations created successfully'}, status=status.HTTP_201_CREATED)
 
 @jwt_required
 @api_view(['GET'])
 def get_post_hashtags_by_post_id(request, post_id):
-    post_hashtag_rels = Post_hashtag_rel.objects.filter(post_id=post_id)
+    post_hashtag_rels = PostHashtagRel.objects.filter(post_id=post_id)
     hashtags = [Hashtag.objects.get(id=post_hashtag_rel.hashtag_id) for post_hashtag_rel in post_hashtag_rels]
     serializer = HashtagSerializer(hashtags, many=True)
     return Response(serializer.data)
@@ -123,6 +123,6 @@ def get_post_hashtags_by_post_id(request, post_id):
 @jwt_required
 @api_view(['GET'])
 def get_posts_by_hashtag_id(request, hashtag_id):
-    post_hashtag_rels = Post_hashtag_rel.objects.filter(hashtag_id=hashtag_id)
+    post_hashtag_rels = PostHashtagRel.objects.filter(hashtag_id=hashtag_id)
     post_ids = [post_hashtag_rel.post_id for post_hashtag_rel in post_hashtag_rels]
     return Response({'post_ids': post_ids})
