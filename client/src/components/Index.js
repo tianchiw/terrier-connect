@@ -1,6 +1,6 @@
 import * as React from "react";
 import Box from "@mui/material/Box";
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2";
 import TextField from "@mui/material/TextField";
 import { Button, Typography, Divider, Modal } from "@mui/material";
 
@@ -36,6 +36,7 @@ export default function LoginForm() {
             flexDirection: "column",
             justifyContent: "center",
           }}
+          size={6}
         >
           <Typography
             variant="h3"
@@ -65,6 +66,7 @@ export default function LoginForm() {
             flexDirection: "column",
             alignItems: "center",
           }}
+          size={6}
         >
           <TextField
             required
