@@ -23,17 +23,6 @@ const dataPie = [
 const HomePage = () => {
   return (
     <Box display="flex">
-      {/* Sidebar */}
-      <Paper sx={{ width: '15%', height: '100vh', padding: 2 }}>
-        <Typography variant="h6" gutterBottom>通用后台管理系统</Typography>
-        <Box mt={2}>
-          <Typography>首页</Typography>
-          <Typography>商品管理</Typography>
-          <Typography>用户管理</Typography>
-          <Typography>其他</Typography>
-        </Box>
-      </Paper>
-
       {/* Main Content */}
       <Box flex={1} padding={3}>
         <Grid container spacing={3}>

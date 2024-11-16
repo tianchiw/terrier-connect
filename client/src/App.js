@@ -7,9 +7,12 @@ import {
 } from "react-router-dom";
 import Header from "./components/Header";
 import HomePage from "./pages/homepage";
-import Detail from "./pages/postDetail";
+import Detail from "./pages/forumPost/Map";
 import Profile from "./pages/userProfile";
 import Index from "./pages/indexpage";
+import ForumPost from "./pages/forumPost";
+import UserMessages from "./pages/follower";
+import PostSearch from "./pages/search";
 import Sidebar from "./components/Sidebar";
 
 // Wrapper component to conditionally render Header
@@ -36,6 +39,9 @@ function App() {
           <Route path="/home" element={<HomePage />} />
           <Route path="/detail" element={<Detail />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/forumPost" element={<ForumPost />} />
+          <Route path="/follower" element={<UserMessages />} />
+          <Route path="/search" element={<PostSearch />} />
         </Routes>
       </HeaderWrapper>
     </Router>

@@ -3,13 +3,17 @@ import Box from "@mui/material/Box";
 import Grid from "@mui/material/Grid2";
 import TextField from "@mui/material/TextField";
 import { Button, Typography, Divider, Modal } from "@mui/material";
+import { useNavigate } from 'react-router-dom';
 
 export default function LoginForm() {
   const [open, setOpen] = React.useState(false);
-
+  const navigate = useNavigate();
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
 
+  const handleNavigate = () => {
+    navigate('/home'); // /home
+  };
   return (
     <Box
       component="form"
@@ -83,6 +87,7 @@ export default function LoginForm() {
             type="password"
             fullWidth
           />
+
           <Button
             variant="contained"
             fullWidth
@@ -100,6 +105,7 @@ export default function LoginForm() {
           >
             Log In
           </Button>
+
           <Button
             variant="text"
             sx={{
@@ -111,23 +117,29 @@ export default function LoginForm() {
           >
             Forgot password?
           </Button>
+
           <Divider sx={{ width: "100%", margin: "16px 0" }} />
+
           <Button
-            variant="contained"
-            fullWidth
+              variant="contained"
+              fullWidth
+              sx={{
+                backgroundColor: "#42b72a",
+                color: "#fff",
+                padding: "10px 0",
+                fontSize: "16px",
+                fontWeight: "bold",
+                "&:hover": {
+                  backgroundColor: "#36a420",
+                },
+              }}
+            
             onClick={handleOpen}
-            sx={{
-              backgroundColor: "#42b72a",
-              color: "#fff",
-              padding: "10px 0",
-              fontSize: "16px",
-              fontWeight: "bold",
-              "&:hover": {
-                backgroundColor: "#36a420",
-              },
-            }}
           >
             Create new account
+          </Button>
+          <Button className="my-button" onClick={handleNavigate}>
+            Skip
           </Button>
         </Grid>
       </Grid>
