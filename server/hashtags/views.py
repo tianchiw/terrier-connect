@@ -7,6 +7,9 @@ from hashtags.serializer import HashtagSerializer
 from users.decorators import jwt_required
 import jwt
 from django.conf import settings
+from datetime import datetime, timedelta
+from django.db.models import Count
+from posts.serializers import PostSerializer
 
 # Create your views here.
 @jwt_required # This is a decorator to check if the user has a valid JWT token. Add this decorator to the APIs that you want to protect.
@@ -116,7 +119,7 @@ def add_post_hashtags_rel_by_ids(request):
 @api_view(['GET'])
 def get_post_hashtags_by_post_id(request, post_id):
     post_hashtag_rels = PostHashtagRel.objects.filter(post_id=post_id)
-    hashtags = [Hashtag.objects.get(id=post_hashtag_rel.hashtag_id) for post_hashtag_rel in post_hashtag_rels]
+    hashtags = [post_hashtag_rel.hashtag_id for post_hashtag_rel in post_hashtag_rels]
     serializer = HashtagSerializer(hashtags, many=True)
     return Response(serializer.data)
 
@@ -124,5 +127,57 @@ def get_post_hashtags_by_post_id(request, post_id):
 @api_view(['GET'])
 def get_posts_by_hashtag_id(request, hashtag_id):
     post_hashtag_rels = PostHashtagRel.objects.filter(hashtag_id=hashtag_id)
-    post_ids = [post_hashtag_rel.post_id for post_hashtag_rel in post_hashtag_rels]
-    return Response({'post_ids': post_ids})
+    # post_ids = [post_hashtag_rel.post_id for post_hashtag_rel in post_hashtag_rels]
+    posts = [post_hashtag_rel.post_id for post_hashtag_rel in post_hashtag_rels]
+    print(posts)
+    serializer = PostSerializer(posts, many=True)
+
+    return Response({'posts': serializer.data})
+
+@jwt_required
+@api_view(['GET'])
+def get_popular_hashtags(request):
+    # Get PostHashtagsRel records to only include those created in the last 24 hours.
+    last_24_hours = datetime.now() - timedelta(hours=24)
+    post_hashtag_rels = PostHashtagRel.objects.filter(created_time__gte=last_24_hours)
+    hashtag_objs = [post_hashtag_rel.hashtag_id for post_hashtag_rel in post_hashtag_rels]
+
+    # Count the number of times each hashtag appears in the list.
+    hashtag_count = {}
+    for hashtag in hashtag_objs:
+        hashtag_str = str(hashtag)
+        if hashtag_str in hashtag_count:
+            hashtag_count[hashtag_str] += 1
+            print(hashtag_count[hashtag_str])
+        else:
+            hashtag_count[hashtag_str] = 1
+    
+    # Limits the results to the top 10 trending hashtags.
+    sorted_hashtag_count = dict(sorted(hashtag_count.items(), key=lambda item: item[1], reverse=True)[:10])
+    print(sorted_hashtag_count)
+    
+    return Response(sorted_hashtag_count)
+
+def add_post_hashtags_rel(post, hashtags):
+    if not hashtags and len(hashtags) == 0:
+        return
+    # Get hashtags id by hashtag_text in the list of hashtags
+    hashtag_instances = []
+    for hashtag_text in hashtags:
+        try:
+            hashtag = Hashtag.objects.get(hashtag_text=hashtag_text)
+        except Hashtag.DoesNotExist:
+            hashtag = None
+        if hashtag:
+            hashtag_instances.append(hashtag)
+        else:
+            new_hashtag = Hashtag.objects.create(hashtag_text=hashtag_text)
+            hashtag_instances.append(new_hashtag)
+    
+    # Create PostHashtagRel objects
+    post_hashtag_rels = []
+    for hashtag_instance in hashtag_instances:
+        post_hashtag_rels.append(PostHashtagRel(post_id=post, hashtag_id=hashtag_instance))
+    
+    PostHashtagRel.objects.bulk_create(post_hashtag_rels)
+    return

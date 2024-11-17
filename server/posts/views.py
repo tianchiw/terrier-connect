@@ -6,6 +6,12 @@ from .models import Post
 from users.models import User  # Import the User model
 from .serializers import PostSerializer
 import jwt
+from hashtags.views import add_post_hashtags_rel
+from django.contrib.postgres.search import SearchQuery, SearchRank, SearchVector
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from django.contrib.postgres.search import SearchVector
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 # Helper function to decode JWT token
 def decode_jwt_token(token):
@@ -38,6 +44,8 @@ def add_post(request):
     if serializer.is_valid():
         # Save the post with the author's instance
         serializer.save()
+        # Add post-hashtags relationship
+        add_post_hashtags_rel(serializer.instance, request.data.get('hashtags', []))
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -99,3 +107,46 @@ def list_posts(request):
     posts = Post.objects.all()  # Retrieve all posts
     serializer = PostSerializer(posts, many=True)
     return Response(serializer.data)
+
+@receiver(post_save, sender=Post)
+def update_search_vector(sender, instance, **kwargs):
+    # Avoid recursion by using a custom attribute
+    if not hasattr(instance, '_updating_search_vector'):
+        instance._updating_search_vector = True  # Set the flag
+        instance.search_vector = SearchVector('content')  # Update the search vector
+        instance.save()
+        del instance._updating_search_vector  # Remove the flag to allow future saves
+
+@api_view(['GET'])
+def full_text_search(request):
+    query = request.query_params.get('query', '')
+    page = request.query_params.get('page', 1)  # Default to page 1
+    page_size = request.query_params.get('pageSize', 10)  # Default to 10 items per page
+
+    if not query:
+        return Response({'error': 'No query parameter provided'}, status=400)
+    
+    search_query = SearchQuery(query)
+    search_vector = SearchVector('content')  # Specify the fields to search
+    posts = Post.objects.annotate(
+        rank=SearchRank(search_vector, search_query)  # Rank results by relevance
+    ).filter(search_vector=search_query).order_by('-rank')  # Order by rank
+
+    # Pagination
+    paginator = Paginator(posts, page_size)
+    try:
+        paginated_posts = paginator.page(page)
+    except PageNotAnInteger:
+        return Response({'error': 'Invalid page number'}, status=400)
+    except EmptyPage:
+        return Response({'error': 'Page out of range'}, status=400)
+    
+    serializer = PostSerializer(paginated_posts, many=True)
+
+    return Response({
+        'page': page,
+        'pageSize': page_size,
+        'totalItems': paginator.count,
+        'totalPages': paginator.num_pages,
+        'results': serializer.data
+    })

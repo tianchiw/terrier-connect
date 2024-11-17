@@ -13,4 +13,5 @@ urlpatterns = [
     path("add_post_hashtags_rel_by_ids/", views.add_post_hashtags_rel_by_ids),
     path("get_post_hashtags_by_post_id/<int:post_id>/", views.get_post_hashtags_by_post_id),
     path("get_posts_by_hashtag_id/<int:hashtag_id>/", views.get_posts_by_hashtag_id),
+    path("get_popular_hashtags/", views.get_popular_hashtags),
 ]
