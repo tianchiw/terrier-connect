@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from .models import UserFollowRel, User
 
-from server.posts.views import get_user_info
+from posts.views import get_user_info
 from .models import User, UserFollowRel
 import re
 
