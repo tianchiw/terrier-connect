@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import axios from "axios";
 import {
   Modal,
   Box,
@@ -27,17 +28,40 @@ const NewPostModal = ({ open, handleClose }) => {
   };
 
   // 点击发布按钮
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!formData.title || !formData.eventLocation || !formData.content || !formData.description) {
       alert("请填写所有必填项");
       return;
     }
-
-    console.log("发布的内容:", formData);
-
-    setSuccessMessage(true);
-    setFormData({ title: "", eventLocation: "", content: "", description: "" });
-    handleClose();
+  
+    const token = localStorage.getItem("token"); // 获取存储的 token
+    if (!token) {
+      alert("用户未登录，请先登录！");
+      return;
+    }
+  
+    try {
+      const response = await axios.post(
+        "http://localhost:8000/posts/add_post/",
+        {
+          content: formData.content,
+          hashtags: ["Ice cream"], // 示例标签，可动态生成
+        },
+        {
+          headers: {
+            Authorization: token, // 添加 Authorization 请求头
+          },
+        }
+      );
+  
+      console.log("Post created successfully:", response.data);
+      setSuccessMessage(true); // 显示成功消息
+      setFormData({ title: "", eventLocation: "", content: "", description: "" }); // 清空表单
+      handleClose(); // 关闭模态框
+    } catch (error) {
+      console.error("Error creating post:", error.response || error.message);
+      alert("发布失败，请检查您的输入！");
+    }
   };
 
   return (
