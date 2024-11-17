@@ -7,5 +7,6 @@ urlpatterns = [
     path('update_post/<int:post_id>/', views.update_post, name='update_post'),
     path('delete_post/<int:post_id>/', views.delete_post, name='delete_post'),
     path('list_posts/', views.list_posts, name='list_posts'),
+    path('list_posts_by_tag/', views.list_posts_by_tag, name='list_posts_by_tag'),  
     path('full_text_search/', views.full_text_search, name='full_text_search'),
 ]

@@ -12,6 +12,8 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.contrib.postgres.search import SearchVector
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from hashtags.models import PostHashtagRel
+from hashtags.models import Hashtag
 
 # Helper function to decode JWT token
 def decode_jwt_token(token):
@@ -150,3 +152,44 @@ def full_text_search(request):
         'totalPages': paginator.num_pages,
         'results': serializer.data
     })
+
+@api_view(['GET'])
+def list_posts_by_tag(request):
+    # Get the query parameters
+    tag = request.query_params.get('tag', None)
+    page = request.query_params.get('page', 1)  # Default page is 1
+    page_size = request.query_params.get('pageSize', 10)  # Default page size is 10
+
+    if not tag:
+        return Response({'error': 'Tag parameter is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        # Get the hashtag object
+        hashtag = Hashtag.objects.get(hashtag_text=tag)
+    except Hashtag.DoesNotExist:
+        return Response({'error': f'Hashtag "{tag}" not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    # Retrieve posts related to the hashtag
+    post_relations = PostHashtagRel.objects.filter(hashtag_id=hashtag)
+    posts = [relation.post_id for relation in post_relations]  # Extract posts from relationships
+
+    # Paginate the posts
+    paginator = Paginator(posts, page_size)
+    try:
+        paginated_posts = paginator.page(page)
+    except PageNotAnInteger:
+        return Response({'error': 'Invalid page number.'}, status=status.HTTP_400_BAD_REQUEST)
+    except EmptyPage:
+        return Response({'error': 'Page out of range.'}, status=status.HTTP_404_NOT_FOUND)
+
+    # Serialize the paginated posts
+    serializer = PostSerializer(paginated_posts, many=True)
+
+    # Return the response with pagination info
+    return Response({
+        'page': page,
+        'pageSize': page_size,
+        'totalItems': paginator.count,
+        'totalPages': paginator.num_pages,
+        'results': serializer.data
+    }, status=status.HTTP_200_OK)
