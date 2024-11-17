@@ -5,7 +5,14 @@ from rest_framework import status
 from django.contrib.auth.hashers import check_password, make_password
 import jwt
 import datetime
-from .models import User
+from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage  # Import for pagination
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework import status
+from .models import UserFollowRel, User
+
+from server.posts.views import get_user_info
+from .models import User, UserFollowRel
 import re
 
 
@@ -137,3 +144,126 @@ def protected_route(request):
         return Response({'message': 'Access granted', 'user_data': user_data})
     except ValueError as e:
         return Response({'error': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
+
+# Get User Info by ID API
+@api_view(['GET'])
+def get_user_info_by_id(request, user_id):
+    """
+    Retrieves user information by user ID.
+    - Requires JWT token for authentication.
+    - Fetches user details for the given user_id, excluding sensitive fields.
+    """
+    # Check if JWT token is provided and valid
+    token = request.headers.get('Authorization', '').split(' ')[-1]
+    try:
+        decode_jwt_token(token)  # Only validating if the token is valid, no data needed here
+    except ValueError as e:
+        return Response({'error': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
+
+    # Fetch user details by user_id
+    try:
+        user = User.objects.get(id=user_id)
+        user_info = {
+            'id': user.id,
+            'email': user.email,
+            'display_name': user.display_name,
+            'bio': user.bio  # Include other non-sensitive fields if available
+        }
+        return Response({'user': user_info})
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['POST'])
+def follow_user(request, user_id):
+    """
+    API to follow another user.
+    - Authenticated user can follow a user by user_id.
+    """
+    try:
+        user_info = get_user_info(request)  # Authenticate the request
+    except ValueError as e:
+        return Response({'error': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
+
+    follower = User.objects.get(id=user_info['id'])
+    try:
+        following = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    if follower == following:
+        return Response({'error': 'Users cannot follow themselves.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Check if the relationship already exists
+    if UserFollowRel.objects.filter(follower=follower, following=following).exists():
+        return Response({'error': 'Already following this user.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Create the follow relationship
+    UserFollowRel.objects.create(follower=follower, following=following)
+    return Response({'message': f'{follower.display_name} is now following {following.display_name}.'}, status=status.HTTP_201_CREATED)
+
+@api_view(['DELETE'])
+def unfollow_user(request, user_id):
+    """
+    API to unfollow a user.
+    - Authenticated user can unfollow a user by user_id.
+    """
+    try:
+        user_info = get_user_info(request)  # Authenticate the request
+    except ValueError as e:
+        return Response({'error': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
+
+    follower = User.objects.get(id=user_info['id'])
+    try:
+        following = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    # Check if the relationship exists
+    try:
+        follow_relation = UserFollowRel.objects.get(follower=follower, following=following)
+    except UserFollowRel.DoesNotExist:
+        return Response({'error': 'Not following this user.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Delete the follow relationship
+    follow_relation.delete()
+    return Response({'message': f'{follower.display_name} has unfollowed {following.display_name}.'}, status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(['GET'])
+def list_followers(request, user_id):
+    """
+    API to list all followers of a user.
+    - Uses pagination for better performance.
+    """
+    page = request.query_params.get('page', 1)
+    page_size = request.query_params.get('pageSize', 10)
+
+    try:
+        # Ensure the user exists
+        User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    # Fetch followers
+    followers = UserFollowRel.objects.filter(following_id=user_id).select_related('follower')
+
+    # Paginate the results
+    paginator = paginator(followers, page_size)
+    try:
+        paginated_followers = paginator.page(page)
+    except PageNotAnInteger:
+        return Response({'error': 'Invalid page number.'}, status=status.HTTP_400_BAD_REQUEST)
+    except EmptyPage:
+        return Response({'error': 'Page out of range.'}, status=status.HTTP_404_NOT_FOUND)
+
+    # Serialize followers
+    results = [{'id': rel.follower.id, 'display_name': rel.follower.display_name, 'email': rel.follower.email}
+               for rel in paginated_followers]
+
+    return Response({
+        'page': page,
+        'pageSize': page_size,
+        'totalItems': paginator.count,
+        'totalPages': paginator.num_pages,
+        'results': results
+    }, status=status.HTTP_200_OK)
