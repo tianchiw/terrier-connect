@@ -52,14 +52,14 @@ def add_post(request):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
-def get_post_detail(request, pk):
+def get_post_detail(request, post_id):
     try:
         user_info = get_user_info(request)
     except ValueError as e:
         return Response({'error': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
 
     try:
-        post = Post.objects.get(pk=pk)
+        post = Post.objects.get(pk=post_id)
     except Post.DoesNotExist:
         return Response({'error': 'Post not found'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -67,16 +67,25 @@ def get_post_detail(request, pk):
     return Response(serializer.data)
 
 @api_view(['PUT'])
-def update_post(request, pk):
+def update_post(request, post_id):
     try:
         user_info = get_user_info(request)
     except ValueError as e:
         return Response({'error': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
 
+    # Retrieve the user instance based on the decoded JWT token ID
     try:
-        post = Post.objects.get(pk=pk, author_id=user_info['id'])
+        author = User.objects.get(id=user_info['id'])
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    try:
+        post = Post.objects.get(pk=post_id, author_id=author.id)
     except Post.DoesNotExist:
         return Response({'error': 'Post not found or not authorized'}, status=status.HTTP_404_NOT_FOUND)
+
+    # Include author in the request data
+    request.data['author'] = author.id
 
     serializer = PostSerializer(post, data=request.data)
     if serializer.is_valid():
@@ -85,19 +94,20 @@ def update_post(request, pk):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['DELETE'])
-def delete_post(request, pk):
+def delete_post(request, post_id):  # Changed `pk` to `post_id`
     try:
         user_info = get_user_info(request)
     except ValueError as e:
         return Response({'error': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
 
     try:
-        post = Post.objects.get(pk=pk, author_id=user_info['id'])
+        post = Post.objects.get(pk=post_id, author_id=user_info['id'])  # Updated here as well
     except Post.DoesNotExist:
         return Response({'error': 'Post not found or not authorized'}, status=status.HTTP_404_NOT_FOUND)
 
     post.delete()
     return Response({'message': 'Post deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
+
 
 @api_view(['GET'])
 def list_posts(request):
