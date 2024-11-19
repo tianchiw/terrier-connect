@@ -69,9 +69,9 @@ export default function LoginForm() {
         throw new Error(data.message || "Login failed");
       }
 
-      showAlert("Successfully logged in!", "success");
+      console.log("Successfully logged in!");
     } catch (err) {
-      showAlert(error.message, "error");
+      setError(error.message);
     }
   };
 
