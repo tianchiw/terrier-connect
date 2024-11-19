@@ -6,13 +6,108 @@ import { Button, Typography, Divider, Modal } from "@mui/material";
 
 export default function LoginForm() {
   const [open, setOpen] = React.useState(false);
+  const [error, setError] = React.useState("");
+  const [loginData, setLoginData] = React.useState({
+    email: "",
+    password: "",
+  });
+  const [registerData, setRegisterData] = React.useState({
+    email: "",
+    password: "",
+    username: "",
+    confirmPassword: "",
+  });
+  const [alert, setAlert] = React.useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
+
+  const handleAlertClose = () => {
+    setAlert({ ...alert, open: false });
+  };
+
+  const showAlert = (message, severity) => {
+    setAlert({
+      open: true,
+      message,
+      severity,
+    });
+  };
 
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
 
+  const handleLoginChange = (e) => {
+    setLoginData({
+      ...loginData,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  const handleRegisterChange = (e) => {
+    setRegisterData({
+      ...registerData,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await fetch("http://localhost:8000/users/login", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(loginData),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || "Login failed");
+      }
+
+      showAlert("Successfully logged in!", "success");
+    } catch (err) {
+      showAlert(error.message, "error");
+    }
+  };
+
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    if (registerData.password !== registerData.confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    try {
+      const response = await fetch("http://localhost:8000/users/register", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(registerData),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || "Registration failed");
+      }
+
+      handleClose();
+      console.log("Registration successful");
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   return (
     <Box
       component="form"
+      onSubmit={handleLogin}
       sx={{
         display: "flex",
         flexDirection: "row",
@@ -69,21 +164,28 @@ export default function LoginForm() {
           size={6}
         >
           <TextField
+            name="email"
             required
             id="outlined-required"
             label="BU Email"
             margin="dense"
             fullWidth
+            value={loginData.email}
+            onChange={handleLoginChange}
           />
           <TextField
+            name="password"
             required
             id="outlined-password"
             label="Password"
             margin="dense"
             type="password"
             fullWidth
+            value={loginData.password}
+            onChange={handleLoginChange}
           />
           <Button
+            type="submit"
             variant="contained"
             fullWidth
             sx={{
@@ -135,6 +237,8 @@ export default function LoginForm() {
       {/* Sign Up Modal */}
       <Modal open={open} onClose={handleClose} aria-labelledby="sign-up-modal">
         <Box
+          component="form"
+          onSubmit={handleRegister}
           sx={{
             position: "absolute",
             top: "50%",
@@ -154,23 +258,51 @@ export default function LoginForm() {
           >
             Sign Up
           </Typography>
-          <TextField required label="Full Name" margin="dense" fullWidth />
-          <TextField required label="BU Email" margin="dense" fullWidth />
+          {error && (
+            <Typography color="error" sx={{ mb: 2 }}>
+              {error}
+            </Typography>
+          )}
           <TextField
+            name="username"
+            required
+            label="Full Name"
+            margin="dense"
+            fullWidth
+            value={registerData.username}
+            onChange={handleRegisterChange}
+          />
+          <TextField
+            name="email"
+            required
+            label="BU Email"
+            margin="dense"
+            fullWidth
+            value={registerData.email}
+            onChange={handleRegisterChange}
+          />
+          <TextField
+            name="password"
             required
             label="Password"
             type="password"
             margin="dense"
             fullWidth
+            value={registerData.password}
+            onChange={handleRegisterChange}
           />
           <TextField
+            name="confirmPassword"
             required
             label="Confirm Password"
             type="password"
             margin="dense"
             fullWidth
+            value={registerData.confirmPassword}
+            onChange={handleRegisterChange}
           />
           <Button
+            type="submit"
             variant="contained"
             fullWidth
             sx={{
@@ -184,7 +316,6 @@ export default function LoginForm() {
                 backgroundColor: "#36a420",
               },
             }}
-            onClick={handleClose}
           >
             Sign Up
           </Button>
