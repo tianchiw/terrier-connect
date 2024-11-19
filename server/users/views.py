@@ -10,7 +10,9 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from .models import UserFollowRel, User
-
+# Register API
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
 from posts.views import get_user_info
 from .models import User, UserFollowRel
 import re
@@ -62,40 +64,63 @@ def decode_jwt_token(token):
 
 
 # Register API
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
+
 @api_view(['POST'])
 def register_user(request):
     """
-    Registers a new user by:
-    - Validating email and password format
-    - Checking for email uniqueness
-    - Hashing the password and saving user data to the database
-    Returns a success message if registration is successful.
+    Optimized API to register a new user.
+    - Validates input fields.
+    - Ensures confirmPassword matches password.
+    - Checks for uniqueness of email and username.
+    - Hashes the password and creates the user.
     """
     data = request.data
-    email = data.get('email')
-    password = data.get('password')
-    display_name = data.get('display_name', '')
+    email = data.get('email', '').strip()
+    password = data.get('password', '')
+    confirm_password = data.get('confirmPassword', '')
+    username = data.get('username', '').strip()
 
-    # Validate email and password presence
-    if not email or not password:
-        return Response({'error': 'Email and password are required.'}, status=status.HTTP_400_BAD_REQUEST)
-    
-    # Check if email format is valid
-    if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
-        return Response({'error': 'Invalid email format.'}, status=status.HTTP_400_BAD_REQUEST)
-    
-    # Check if email is already registered
-    if User.objects.filter(email=email).exists():
-        return Response({'error': 'Email is already registered.'}, status=status.HTTP_400_BAD_REQUEST)
-    
-    # Ensure password meets strength requirements
-    if not is_password_strong(password):
-        return Response({'error': 'Password must be at least 8 characters long, include a number and a special character.'},
+    # Validate required fields
+    if not email or not password or not confirm_password or not username:
+        return Response({'error': 'All fields (email, username, password, confirmPassword) are required.'},
                         status=status.HTTP_400_BAD_REQUEST)
 
-    # Create user with hashed password
-    user = User.objects.create(email=email, display_name=display_name, password=make_password(password))
-    return Response({'message': 'User registered successfully.'}, status=status.HTTP_201_CREATED)
+    # Validate email format
+    try:
+        validate_email(email)
+    except ValidationError:
+        return Response({'error': 'Invalid email format.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Check if passwords match
+    if password != confirm_password:
+        return Response({'error': 'Password and confirmPassword do not match.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Ensure email uniqueness
+    if User.objects.filter(email=email).exists():
+        return Response({'error': 'Email is already registered.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Ensure username uniqueness
+    if User.objects.filter(display_name=username).exists():
+        return Response({'error': 'Username is already taken.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Validate password strength
+    if len(password) < 8 or not re.search(r'\d', password) or not re.search(r'[\W_]', password):
+        return Response({'error': 'Password must be at least 8 characters long, include a number, and a special character.'},
+                        status=status.HTTP_400_BAD_REQUEST)
+
+    # Create and save the user
+    user = User.objects.create(
+        email=email,
+        display_name=username,
+        password=make_password(password)
+    )
+
+    # Respond with success
+    return Response({'message': 'User registered successfully.', 'user': {'id': user.id, 'email': user.email, 'username': user.display_name}},
+                    status=status.HTTP_201_CREATED)
+
 
 
 # Login API
@@ -248,7 +273,7 @@ def list_followers(request, user_id):
     followers = UserFollowRel.objects.filter(following_id=user_id).select_related('follower')
 
     # Paginate the results
-    paginator = paginator(followers, page_size)
+    paginator = Paginator(followers, page_size)
     try:
         paginated_followers = paginator.page(page)
     except PageNotAnInteger:
@@ -259,6 +284,45 @@ def list_followers(request, user_id):
     # Serialize followers
     results = [{'id': rel.follower.id, 'display_name': rel.follower.display_name, 'email': rel.follower.email}
                for rel in paginated_followers]
+
+    return Response({
+        'page': page,
+        'pageSize': page_size,
+        'totalItems': paginator.count,
+        'totalPages': paginator.num_pages,
+        'results': results
+    }, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+def list_following(request, user_id):
+    """
+    API to list all users a specific user is following.
+    - Uses pagination for better performance.
+    """
+    page = request.query_params.get('page', 1)
+    page_size = request.query_params.get('pageSize', 10)
+
+    try:
+        # Ensure the user exists
+        User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    # Fetch following relationships
+    following = UserFollowRel.objects.filter(follower_id=user_id).select_related('following')
+
+    # Paginate the results
+    paginator = Paginator(following, page_size)
+    try:
+        paginated_following = paginator.page(page)
+    except PageNotAnInteger:
+        return Response({'error': 'Invalid page number.'}, status=status.HTTP_400_BAD_REQUEST)
+    except EmptyPage:
+        return Response({'error': 'Page out of range.'}, status=status.HTTP_404_NOT_FOUND)
+
+    # Serialize following users
+    results = [{'id': rel.following.id, 'display_name': rel.following.display_name, 'email': rel.following.email}
+               for rel in paginated_following]
 
     return Response({
         'page': page,
