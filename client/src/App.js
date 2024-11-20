@@ -6,11 +6,13 @@ import {
   useLocation,
 } from "react-router-dom";
 import Header from "./components/Header";
-import Home from "./components/Home";
-import Detail from "./components/Detail";
-import Profile from "./components/Profile";
-import Index from "./components/Index";
-import Sidebar from "./components/Sidebar";
+import HomePage from "./pages/homepage";
+import Detail from "./pages/forumPost/Map";
+import Profile from "./pages/userProfile";
+import Index from "./pages/indexpage";
+import ForumPost from "./pages/forumPost";
+import UserMessages from "./pages/follower";
+import PostSearch from "./pages/search";
 
 // Wrapper component to conditionally render Header
 const HeaderWrapper = ({ children }) => {
@@ -33,9 +35,12 @@ function App() {
       <HeaderWrapper>
         <Routes>
           <Route path="/" element={<Index />} />
-          <Route path="/home" element={<Home />} />
+          <Route path="/home" element={<HomePage />} />
           <Route path="/detail" element={<Detail />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/forumPost" element={<ForumPost />} />
+          <Route path="/follower" element={<UserMessages />} />
+          <Route path="/search" element={<PostSearch />} />
         </Routes>
       </HeaderWrapper>
     </Router>
