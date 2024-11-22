@@ -4,6 +4,7 @@ from django.contrib.postgres.search import SearchVectorField
 from django.db.models import Index
 
 class Post(models.Model):
+    title = models.CharField(max_length=255)  # New field for title
     content = models.TextField()
     image_url = models.URLField(max_length=255, blank=True, null=True)
     timestamp = models.DateTimeField(auto_now_add=True)
