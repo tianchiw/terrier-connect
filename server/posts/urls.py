@@ -9,4 +9,9 @@ urlpatterns = [
     path('list_posts/', views.list_posts, name='list_posts'),
     path('list_posts_by_tag/', views.list_posts_by_tag, name='list_posts_by_tag'),  
     path('full_text_search/', views.full_text_search, name='full_text_search'),
+    path('comments/create/', views.create_comment, name='create_comment'),
+    path('comments/update/<int:comment_id>/', views.update_comment, name='update_comment'),
+    path('comments/delete/<int:comment_id>/', views.delete_comment, name='delete_comment'),
+    path('<int:post_id>/comments/', views.list_comments, name='list_comments'),
+    path('comments/authors/<int:author_id>/', views.list_comments_by_author, name='list_comments_by_author'),
 ]
