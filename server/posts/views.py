@@ -159,6 +159,7 @@ def full_text_search(request):
     query = request.query_params.get('query', '')
     page = request.query_params.get('page', 1)  # Default to page 1
     page_size = request.query_params.get('pageSize', 10)  # Default to 10 items per page
+    order_by = request.query_params.get('orderBy', '-create_time')
 
     if not query:
         return Response({'error': 'No query parameter provided'}, status=400)
@@ -167,7 +168,7 @@ def full_text_search(request):
     search_vector = SearchVector('content')  # Specify the fields to search
     posts = Post.objects.annotate(
         rank=SearchRank(search_vector, search_query)  # Rank results by relevance
-    ).filter(search_vector=search_query).order_by('-rank')  # Order by rank
+    ).filter(search_vector=search_query).order_by('-rank', order_by)  # Order by rank
 
     # Pagination
     paginator = Paginator(posts, page_size)
@@ -282,9 +283,10 @@ def delete_comment(request, comment_id):
 def list_comments(request, post_id):
     page = request.query_params.get('page', 1)  # Default to page 1
     page_size = request.query_params.get('pageSize', 10)  # Default to 10 items per page
+    order_by = request.query_params.get('orderBy', 'create_time')
     
     # Fetch top-level comments for the specified post
-    comments = Comment.objects.filter(post_id=post_id, parent__isnull=True).select_related('author', 'post').prefetch_related('replies')
+    comments = Comment.objects.filter(post_id=post_id, parent__isnull=True).select_related('author', 'post').prefetch_related('replies').order_by(order_by)
     
     # Pagination
     paginator = Paginator(comments, page_size)
@@ -309,8 +311,8 @@ def list_comments(request, post_id):
 def list_comments_by_author(request, author_id):
     page = request.query_params.get('page', 1)  # Default to page 1
     page_size = request.query_params.get('pageSize', 10)  # Default to 10 items per page
-
-    comments = Comment.objects.filter(author_id=author_id)
+    order_by = request.query_params.get('orderBy', '-create_time')
+    comments = Comment.objects.filter(author_id=author_id).order_by(order_by)
 
     # Pagination
     paginator = Paginator(comments, page_size)
