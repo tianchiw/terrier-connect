@@ -81,6 +81,9 @@ venv
 *.pyc
 __pycache__/
 local_settings.py
+/*/media/user_avatars/*
+!/*/media/user_avatars/default_avatar.png
+/*/media/post_media/*
 
 .env*
 db.sqlite3

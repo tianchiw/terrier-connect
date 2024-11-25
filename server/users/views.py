@@ -16,6 +16,9 @@ from django.core.validators import validate_email
 from posts.views import get_user_info
 from .models import User, UserFollowRel
 import re
+from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.decorators import parser_classes
+from django.core.files.storage import default_storage
 
 
 # Helper function to check password strength
@@ -68,6 +71,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 
 @api_view(['POST'])
+@parser_classes([MultiPartParser, FormParser])  # Handle file uploads
 def register_user(request):
     """
     Optimized API to register a new user.
@@ -81,6 +85,7 @@ def register_user(request):
     password = data.get('password', '')
     confirm_password = data.get('confirmPassword', '')
     username = data.get('username', '').strip()
+    avatar = request.FILES.get('avatar')  # Get the uploaded file
 
     # Validate required fields
     if not email or not password or not confirm_password or not username:
@@ -110,16 +115,30 @@ def register_user(request):
         return Response({'error': 'Password must be at least 8 characters long, include a number, and a special character.'},
                         status=status.HTTP_400_BAD_REQUEST)
 
+    # Save the uploaded avatar if provided
+    avatar_url = 'user_avatars/default_avatar.png'
+    if avatar:
+        avatar_path = default_storage.save(f'user_avatars/{avatar.name}', avatar)
+        avatar_url = avatar_path
+
     # Create and save the user
     user = User.objects.create(
         email=email,
         display_name=username,
-        password=make_password(password)
+        password=make_password(password),
+        avatar_url=avatar_url
     )
 
     # Respond with success
-    return Response({'message': 'User registered successfully.', 'user': {'id': user.id, 'email': user.email, 'username': user.display_name}},
-                    status=status.HTTP_201_CREATED)
+    return Response({
+        'message': 'User registered successfully.',
+        'user': {
+            'id': user.id,
+            'email': user.email,
+            'username': user.display_name,
+            'avatar_url': user.avatar_url.url if user.avatar_url else None
+        }
+    }, status=status.HTTP_201_CREATED)
 
 
 
@@ -151,7 +170,15 @@ def login_user(request):
 
     # Generate JWT token for the authenticated user
     token = generate_jwt_token(user)
-    return Response({'token': token, 'user': {'id': user.id, 'email': user.email, 'display_name': user.display_name}})
+    return Response({
+        'token': token, 
+        'user': {
+            'id': user.id, 
+            'email': user.email, 
+            'display_name': user.display_name,
+            'avatar_url': user.avatar_url.url if user.avatar_url else None
+            }
+    })
 
 
 # Example of a protected route using JWT
@@ -192,7 +219,8 @@ def get_user_info_by_id(request, user_id):
             'id': user.id,
             'email': user.email,
             'display_name': user.display_name,
-            'bio': user.bio  # Include other non-sensitive fields if available
+            'bio': user.bio,  # Include other non-sensitive fields if available
+            'avatar_url': user.avatar_url.url if user.avatar_url else None
         }
         return Response({'user': user_info})
     except User.DoesNotExist:
@@ -282,7 +310,7 @@ def list_followers(request, user_id):
         return Response({'error': 'Page out of range.'}, status=status.HTTP_404_NOT_FOUND)
 
     # Serialize followers
-    results = [{'id': rel.follower.id, 'display_name': rel.follower.display_name, 'email': rel.follower.email}
+    results = [{'id': rel.follower.id, 'display_name': rel.follower.display_name, 'email': rel.follower.email, 'avatar_url': rel.follower.avatar_url.url if rel.follower.avatar_url else None}
                for rel in paginated_followers]
 
     return Response({
@@ -321,7 +349,7 @@ def list_following(request, user_id):
         return Response({'error': 'Page out of range.'}, status=status.HTTP_404_NOT_FOUND)
 
     # Serialize following users
-    results = [{'id': rel.following.id, 'display_name': rel.following.display_name, 'email': rel.following.email}
+    results = [{'id': rel.following.id, 'display_name': rel.following.display_name, 'email': rel.following.email, 'avatar_url': rel.following.avatar_url.url if rel.following.avatar_url else None}
                for rel in paginated_following]
 
     return Response({

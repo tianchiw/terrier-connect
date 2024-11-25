@@ -16,6 +16,10 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from hashtags.models import PostHashtagRel
 from hashtags.models import Hashtag
 from users.decorators import jwt_required
+import json
+from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.decorators import parser_classes
+from django.core.files.storage import default_storage
 
 # Helper function to decode JWT token
 def decode_jwt_token(token):
@@ -32,25 +36,44 @@ def get_user_info(request):
     return decode_jwt_token(token)
 
 @api_view(['POST'])
+@parser_classes([MultiPartParser, FormParser])  # Allow handling multipart/form-data
 def add_post(request):
     try:
         user_info = get_user_info(request)  # Decodes JWT token to get user info
     except ValueError as e:
         return Response({'error': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
 
+    hashtags = request.data.get('hashtags', '[]')
+    try:
+        hashtags = json.loads(hashtags)
+    except json.JSONDecodeError:
+        return Response({'error': 'Invalid JSON format for hashtags'}, status=status.HTTP_400_BAD_REQUEST)
+
     # Retrieve the user instance based on the decoded JWT token ID
     try:
         author = User.objects.get(id=user_info['id'])
     except User.DoesNotExist:
         return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
-    request.data['author'] = author.id
-    serializer = PostSerializer(data=request.data)
+
+    # Make a mutable copy of the request data
+    data = request.data.copy()
+    data['author'] = author.id  # Set the author field in the data
+
+    # Check for an uploaded image
+    image = request.FILES.get('image_url')  # Access the uploaded file
+
+    # Add the image file to the data if provided
+    if image:
+        data['image_url'] = image
+
+    serializer = PostSerializer(data=data)
     if serializer.is_valid():
         # Save the post with the author's instance
         serializer.save()
         # Add post-hashtags relationship
-        add_post_hashtags_rel(serializer.instance, request.data.get('hashtags', []))
+        add_post_hashtags_rel(serializer.instance, hashtags)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
