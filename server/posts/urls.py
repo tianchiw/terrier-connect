@@ -14,4 +14,5 @@ urlpatterns = [
     path('comments/delete/<int:comment_id>/', views.delete_comment, name='delete_comment'),
     path('<int:post_id>/comments/', views.list_comments, name='list_comments'),
     path('comments/authors/<int:author_id>/', views.list_comments_by_author, name='list_comments_by_author'),
+    path('list_posts/', views.list_posts, name='list_posts'),
 ]
