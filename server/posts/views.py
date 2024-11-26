@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from .models import Post
 from .models import Comment
-from users.models import User  # Import the User model
+from users.models import User, UserFollowRel  # Import the User model
 from .serializers import PostSerializer, CommentSerializer, CommentCreateSerializer
 import jwt
 from hashtags.views import add_post_hashtags_rel
@@ -19,7 +19,6 @@ from users.decorators import jwt_required
 import json
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.decorators import parser_classes
-from django.core.files.storage import default_storage
 
 # Helper function to decode JWT token
 def decode_jwt_token(token):
@@ -332,3 +331,51 @@ def list_comments_by_author(request, author_id):
         'totalPages': paginator.num_pages,
         'results': serializer.data
     })
+
+@api_view(['GET'])
+def list_posts(request):
+    try:
+        user_info = get_user_info(request)
+        current_user = User.objects.get(id=user_info['id'])
+        
+        # Get pagination parameters
+        page = request.query_params.get('page', 1)
+        page_size = request.query_params.get('pageSize', 10)
+        order_by = request.query_params.get('orderBy', '-create_time')
+        
+        # Get posts from users that the current user follows
+        following_posts = Post.objects.filter(
+            author__in=UserFollowRel.objects.filter(
+                follower=current_user
+            ).values_list('following', flat=True)
+        )
+        
+        # Get the user's own posts
+        own_posts = Post.objects.filter(author=current_user)
+        
+        # Combine and order all posts
+        all_posts = following_posts.union(own_posts).order_by(order_by)
+        
+        # Apply pagination
+        paginator = Paginator(all_posts, page_size)
+        try:
+            paginated_posts = paginator.page(page)
+        except PageNotAnInteger:
+            return Response({'error': 'Invalid page number'}, status=status.HTTP_400_BAD_REQUEST)
+        except EmptyPage:
+            return Response({'error': 'Page out of range'}, status=status.HTTP_404_NOT_FOUND)
+        
+        serializer = PostSerializer(paginated_posts, many=True)
+        
+        return Response({
+            'page': page,
+            'pageSize': page_size,
+            'totalItems': paginator.count,
+            'totalPages': paginator.num_pages,
+            'results': serializer.data
+        })
+        
+    except ValueError as e:
+        return Response({'error': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)  
