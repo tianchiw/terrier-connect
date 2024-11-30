@@ -9,7 +9,7 @@ import Header from "./components/Header";
 import HomePage from "./pages/homepage";
 import Detail from "./pages/forumPost/Map";
 import Profile from "./pages/userProfile";
-import Index from "./pages/indexpage";
+import Index from "./components/Index";
 import ForumPost from "./pages/forumPost";
 import UserMessages from "./pages/follower";
 import PostSearch from "./pages/search";
