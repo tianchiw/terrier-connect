@@ -16,6 +16,19 @@ from django.core.validators import validate_email
 from posts.views import get_user_info
 from .models import User, UserFollowRel
 import re
+from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.decorators import parser_classes
+from django.core.files.storage import default_storage
+#Password Validation
+from django.contrib.auth.hashers import check_password
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
+from rest_framework.decorators import api_view, parser_classes
+from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.response import Response
+from rest_framework import status
+from django.core.files.storage import default_storage
+
 
 
 # Helper function to check password strength
@@ -68,6 +81,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 
 @api_view(['POST'])
+@parser_classes([MultiPartParser, FormParser])  # Handle file uploads
 def register_user(request):
     """
     Optimized API to register a new user.
@@ -81,6 +95,7 @@ def register_user(request):
     password = data.get('password', '')
     confirm_password = data.get('confirmPassword', '')
     username = data.get('username', '').strip()
+    avatar = request.FILES.get('avatar')  # Get the uploaded file
 
     # Validate required fields
     if not email or not password or not confirm_password or not username:
@@ -110,16 +125,30 @@ def register_user(request):
         return Response({'error': 'Password must be at least 8 characters long, include a number, and a special character.'},
                         status=status.HTTP_400_BAD_REQUEST)
 
+    # Save the uploaded avatar if provided
+    avatar_url = 'user_avatars/default_avatar.png'
+    if avatar:
+        avatar_path = default_storage.save(f'user_avatars/{avatar.name}', avatar)
+        avatar_url = avatar_path
+
     # Create and save the user
     user = User.objects.create(
         email=email,
         display_name=username,
-        password=make_password(password)
+        password=make_password(password),
+        avatar_url=avatar_url
     )
 
     # Respond with success
-    return Response({'message': 'User registered successfully.', 'user': {'id': user.id, 'email': user.email, 'username': user.display_name}},
-                    status=status.HTTP_201_CREATED)
+    return Response({
+        'message': 'User registered successfully.',
+        'user': {
+            'id': user.id,
+            'email': user.email,
+            'username': user.display_name,
+            'avatar_url': user.avatar_url.url if user.avatar_url else None
+        }
+    }, status=status.HTTP_201_CREATED)
 
 
 
@@ -151,7 +180,15 @@ def login_user(request):
 
     # Generate JWT token for the authenticated user
     token = generate_jwt_token(user)
-    return Response({'token': token, 'user': {'id': user.id, 'email': user.email, 'display_name': user.display_name}})
+    return Response({
+        'token': token, 
+        'user': {
+            'id': user.id, 
+            'email': user.email, 
+            'display_name': user.display_name,
+            'avatar_url': user.avatar_url.url if user.avatar_url else None
+            }
+    })
 
 
 # Example of a protected route using JWT
@@ -192,7 +229,8 @@ def get_user_info_by_id(request, user_id):
             'id': user.id,
             'email': user.email,
             'display_name': user.display_name,
-            'bio': user.bio  # Include other non-sensitive fields if available
+            'bio': user.bio,  # Include other non-sensitive fields if available
+            'avatar_url': user.avatar_url.url if user.avatar_url else None
         }
         return Response({'user': user_info})
     except User.DoesNotExist:
@@ -282,7 +320,7 @@ def list_followers(request, user_id):
         return Response({'error': 'Page out of range.'}, status=status.HTTP_404_NOT_FOUND)
 
     # Serialize followers
-    results = [{'id': rel.follower.id, 'display_name': rel.follower.display_name, 'email': rel.follower.email}
+    results = [{'id': rel.follower.id, 'display_name': rel.follower.display_name, 'email': rel.follower.email, 'avatar_url': rel.follower.avatar_url.url if rel.follower.avatar_url else None}
                for rel in paginated_followers]
 
     return Response({
@@ -321,7 +359,7 @@ def list_following(request, user_id):
         return Response({'error': 'Page out of range.'}, status=status.HTTP_404_NOT_FOUND)
 
     # Serialize following users
-    results = [{'id': rel.following.id, 'display_name': rel.following.display_name, 'email': rel.following.email}
+    results = [{'id': rel.following.id, 'display_name': rel.following.display_name, 'email': rel.following.email, 'avatar_url': rel.following.avatar_url.url if rel.following.avatar_url else None}
                for rel in paginated_following]
 
     return Response({
@@ -331,3 +369,91 @@ def list_following(request, user_id):
         'totalPages': paginator.num_pages,
         'results': results
     }, status=status.HTTP_200_OK)
+
+@api_view(['PUT'])
+@parser_classes([MultiPartParser, FormParser])
+def update_user_info(request):
+    try:
+        user_info = get_user_info(request)
+        user = User.objects.get(id=user_info['id'])
+        
+        data = request.data
+        
+        # Password update with validation
+        if 'newPassword' in data:
+            old_password = data.get('oldPassword')
+            new_password = data.get('newPassword')
+            confirm_password = data.get('confirmPassword')
+            
+            # Check if old password exists
+            if not old_password:
+                return Response({'error': 'Old password is required'}, 
+                              status=status.HTTP_400_BAD_REQUEST)
+            
+            # Verify old password
+            if not user.check_password(old_password):
+                return Response({'error': 'Current password is incorrect'}, 
+                              status=status.HTTP_400_BAD_REQUEST)
+            
+            # Check password confirmation
+            if new_password != confirm_password:
+                return Response({'error': 'New passwords do not match'}, 
+                              status=status.HTTP_400_BAD_REQUEST)
+            
+            # Check if new password matches any previous passwords
+            if hasattr(user, 'password_history'):
+                for old_hash in user.password_history.split(','):
+                    if old_hash and check_password(new_password, old_hash):
+                        return Response(
+                            {'error': 'Already used the Password in the past. Please try a New Password.'}, 
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+            
+            # Validate new password
+            try:
+                validate_password(new_password, user)
+                # Store the old password hash in history before updating
+                if hasattr(user, 'password_history'):
+                    user.password_history = f"{user.password},{user.password_history}"
+                else:
+                    user.password_history = user.password
+                # Set new password
+                user.set_password(new_password)
+            except ValidationError as e:
+                return Response({'error': e.messages}, 
+                              status=status.HTTP_400_BAD_REQUEST)
+        
+        # Update display name
+        if 'display_name' in data:
+            display_name = data['display_name'].strip()
+            if User.objects.exclude(id=user.id).filter(display_name=display_name).exists():
+                return Response({'error': 'Display name already taken'}, 
+                              status=status.HTTP_400_BAD_REQUEST)
+            user.display_name = display_name
+        
+        # Update avatar
+        if 'avatar_url' in request.FILES:
+            avatar = request.FILES['avatar_url']
+            if not avatar.content_type.startswith('image/'):
+                return Response({'error': 'File must be an image'}, 
+                              status=status.HTTP_400_BAD_REQUEST)
+            avatar_path = default_storage.save(f'user_avatars/{avatar.name}', avatar)
+            user.avatar_url = avatar_path
+        
+        user.save()
+        
+        return Response({
+            'message': 'Profile updated successfully',
+            'user': {
+                'id': user.id,
+                'email': user.email,
+                'display_name': user.display_name,
+                'bio': user.bio,
+                'avatar_url': user.avatar_url.url if user.avatar_url else None
+            }
+        })
+        
+    except ValueError as e:
+        return Response({'error': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)

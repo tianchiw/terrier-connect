@@ -7,7 +7,7 @@ from .models import Comment
 class PostSerializer(serializers.ModelSerializer):
     class Meta:
         model = Post
-        fields = ['id', 'content', 'image_url', 'timestamp', 'geolocation', 'author', 'create_time', 'update_time']
+        fields = ['id','title', 'content', 'image_url', 'timestamp', 'geolocation', 'author', 'create_time', 'update_time']
 
 class CommentSerializer(serializers.ModelSerializer):
     replies = serializers.SerializerMethodField()

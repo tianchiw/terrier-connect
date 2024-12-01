@@ -6,7 +6,7 @@ class User(models.Model):
     email = models.EmailField(unique=True)
     display_name = models.CharField(max_length=100, blank=True, null=True)
     bio = models.TextField(blank=True, null=True)
-    avatar_url = models.URLField(blank=True, null=True)
+    avatar_url = models.ImageField(upload_to='user_avatars/', blank=True, null=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)

@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from .models import Post
 from .models import Comment
-from users.models import User  # Import the User model
+from users.models import User, UserFollowRel  # Import the User model
 from .serializers import PostSerializer, CommentSerializer, CommentCreateSerializer
 import jwt
 from hashtags.views import add_post_hashtags_rel
@@ -16,6 +16,9 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from hashtags.models import PostHashtagRel
 from hashtags.models import Hashtag
 from users.decorators import jwt_required
+import json
+from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.decorators import parser_classes
 
 # Helper function to decode JWT token
 def decode_jwt_token(token):
@@ -32,25 +35,44 @@ def get_user_info(request):
     return decode_jwt_token(token)
 
 @api_view(['POST'])
+@parser_classes([MultiPartParser, FormParser])  # Allow handling multipart/form-data
 def add_post(request):
     try:
         user_info = get_user_info(request)  # Decodes JWT token to get user info
     except ValueError as e:
         return Response({'error': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
 
+    hashtags = request.data.get('hashtags', '[]')
+    try:
+        hashtags = json.loads(hashtags)
+    except json.JSONDecodeError:
+        return Response({'error': 'Invalid JSON format for hashtags'}, status=status.HTTP_400_BAD_REQUEST)
+
     # Retrieve the user instance based on the decoded JWT token ID
     try:
         author = User.objects.get(id=user_info['id'])
     except User.DoesNotExist:
         return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
-    request.data['author'] = author.id
-    serializer = PostSerializer(data=request.data)
+
+    # Make a mutable copy of the request data
+    data = request.data.copy()
+    data['author'] = author.id  # Set the author field in the data
+
+    # Check for an uploaded image
+    image = request.FILES.get('image_url')  # Access the uploaded file
+
+    # Add the image file to the data if provided
+    if image:
+        data['image_url'] = image
+
+    serializer = PostSerializer(data=data)
     if serializer.is_valid():
         # Save the post with the author's instance
         serializer.save()
         # Add post-hashtags relationship
-        add_post_hashtags_rel(serializer.instance, request.data.get('hashtags', []))
+        add_post_hashtags_rel(serializer.instance, hashtags)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
@@ -136,6 +158,7 @@ def full_text_search(request):
     query = request.query_params.get('query', '')
     page = request.query_params.get('page', 1)  # Default to page 1
     page_size = request.query_params.get('pageSize', 10)  # Default to 10 items per page
+    order_by = request.query_params.get('orderBy', '-create_time')
 
     if not query:
         return Response({'error': 'No query parameter provided'}, status=400)
@@ -144,7 +167,7 @@ def full_text_search(request):
     search_vector = SearchVector('content')  # Specify the fields to search
     posts = Post.objects.annotate(
         rank=SearchRank(search_vector, search_query)  # Rank results by relevance
-    ).filter(search_vector=search_query).order_by('-rank')  # Order by rank
+    ).filter(search_vector=search_query).order_by('-rank', order_by)  # Order by rank
 
     # Pagination
     paginator = Paginator(posts, page_size)
@@ -259,9 +282,10 @@ def delete_comment(request, comment_id):
 def list_comments(request, post_id):
     page = request.query_params.get('page', 1)  # Default to page 1
     page_size = request.query_params.get('pageSize', 10)  # Default to 10 items per page
+    order_by = request.query_params.get('orderBy', 'create_time')
     
     # Fetch top-level comments for the specified post
-    comments = Comment.objects.filter(post_id=post_id, parent__isnull=True).select_related('author', 'post').prefetch_related('replies')
+    comments = Comment.objects.filter(post_id=post_id, parent__isnull=True).select_related('author', 'post').prefetch_related('replies').order_by(order_by)
     
     # Pagination
     paginator = Paginator(comments, page_size)
@@ -286,8 +310,8 @@ def list_comments(request, post_id):
 def list_comments_by_author(request, author_id):
     page = request.query_params.get('page', 1)  # Default to page 1
     page_size = request.query_params.get('pageSize', 10)  # Default to 10 items per page
-
-    comments = Comment.objects.filter(author_id=author_id)
+    order_by = request.query_params.get('orderBy', '-create_time')
+    comments = Comment.objects.filter(author_id=author_id).order_by(order_by)
 
     # Pagination
     paginator = Paginator(comments, page_size)
@@ -307,3 +331,51 @@ def list_comments_by_author(request, author_id):
         'totalPages': paginator.num_pages,
         'results': serializer.data
     })
+
+@api_view(['GET'])
+def list_posts(request):
+    try:
+        user_info = get_user_info(request)
+        current_user = User.objects.get(id=user_info['id'])
+        
+        # Get pagination parameters
+        page = request.query_params.get('page', 1)
+        page_size = request.query_params.get('pageSize', 10)
+        order_by = request.query_params.get('orderBy', '-create_time')
+        
+        # Get posts from users that the current user follows
+        following_posts = Post.objects.filter(
+            author__in=UserFollowRel.objects.filter(
+                follower=current_user
+            ).values_list('following', flat=True)
+        )
+        
+        # Get the user's own posts
+        own_posts = Post.objects.filter(author=current_user)
+        
+        # Combine and order all posts
+        all_posts = following_posts.union(own_posts).order_by(order_by)
+        
+        # Apply pagination
+        paginator = Paginator(all_posts, page_size)
+        try:
+            paginated_posts = paginator.page(page)
+        except PageNotAnInteger:
+            return Response({'error': 'Invalid page number'}, status=status.HTTP_400_BAD_REQUEST)
+        except EmptyPage:
+            return Response({'error': 'Page out of range'}, status=status.HTTP_404_NOT_FOUND)
+        
+        serializer = PostSerializer(paginated_posts, many=True)
+        
+        return Response({
+            'page': page,
+            'pageSize': page_size,
+            'totalItems': paginator.count,
+            'totalPages': paginator.num_pages,
+            'results': serializer.data
+        })
+        
+    except ValueError as e:
+        return Response({'error': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)  
