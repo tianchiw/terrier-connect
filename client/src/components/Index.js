@@ -60,8 +60,10 @@ const Index = () => {
       // Extract token and user information from the response
       const { token, user } = response.data;
 
-      // Store the token in localStorage
+      // Store the token and userinfo in localStorage
       localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(response.data.user));
+      console.log("Login successful:", response.data);
 
       // Update the user state
       setUser(user);
