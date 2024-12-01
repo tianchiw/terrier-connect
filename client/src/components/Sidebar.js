@@ -1,75 +1,42 @@
-import React, { useState } from "react";
-import { Drawer, Box, Typography, Button, Menu, MenuItem, Collapse, List, ListItem, ListItemText} from "@mui/material";
-import { useNavigate } from 'react-router-dom';
+import React from "react";
+import { Box, Typography, Button, Container } from "@mui/material";
 
-const buttonStyle = {
-  justifyContent: "flex-start",
-  width: "100%",
-  textTransform: "none"
-};
-
-const PopularTagsDropdown = () => {
-  // tags data
-  const tags = ["React", "Material-UI", "JavaScript"];
-
-  const [open, setOpen] = useState(false);
-
-  const handleToggle = () => {
-    setOpen((prevOpen) => !prevOpen);
-  };
-
+const Index = () => {
   return (
-    <Box>
-      {/* Popular Tags button */}
-      <Button
-        sx={{ margin: 1 }}
-        onClick={handleToggle}
-        aria-expanded={open}
-      >
-        Popular Tags
-      </Button>
-
-      {/* Content */}
-      <Collapse in={open} timeout="auto" unmountOnExit>
-        <List component="nav" sx={{ marginLeft: 2 }}>
-          {tags.map((tag, index) => (
-            <ListItem key={index}>
-              <ListItemText primary={tag} />
-            </ListItem>
-          ))}
-        </List>
-      </Collapse>
+    <Box
+      sx={{
+        bgcolor: "#F4F6F8",
+        minHeight: "100vh",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        p: 2,
+      }}
+    >
+      <Container maxWidth="sm" sx={{ textAlign: "center" }}>
+        <Typography
+          variant="h3"
+          color="#cc0000"
+          sx={{ fontWeight: "bold", mb: 2 }}
+        >
+          Terrier Connect
+        </Typography>
+        <Typography variant="h6" sx={{ color: "gray", mb: 4 }}>
+          Discover popular hashtags in the BU community!
+        </Typography>
+        <Button
+          variant="contained"
+          size="large"
+          sx={{
+            backgroundColor: "#CC0000",
+            "&:hover": { backgroundColor: "#990000" },
+          }}
+        >
+          Show Popular Tags
+        </Button>
+      </Container>
     </Box>
   );
 };
 
-const Sidebar = ({ open, onClose }) => {
-  const navigate = useNavigate();
-  const handleNavigation = (path) => {
-    navigate(path);
-  };
-
-  return (
-    <Drawer
-      anchor="left"
-      open={open}
-      onClose={onClose}
-    >
-      <Box sx={{ width: 250, padding: 2, alignItems: "flex-left" }}>
-        <Typography variant="h6" gutterBottom>
-          Title
-        </Typography>
-        <Box mt={2}>
-          <Button sx={buttonStyle} onClick={() => handleNavigation('/home')}>Homepage</Button>
-          <Box sx={{ width: "100%" }}>
-            <PopularTagsDropdown buttonStyle={buttonStyle} />
-          </Box>
-          <Button sx={buttonStyle} onClick={() => handleNavigation('/profile')}>Profile</Button>
-          <Button sx={buttonStyle}>Others</Button>
-        </Box>
-      </Box>
-    </Drawer>
-  );
-};
-
-export default Sidebar;
+export default Index;
