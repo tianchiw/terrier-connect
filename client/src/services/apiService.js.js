@@ -86,7 +86,10 @@ export const getPostHashtags = async (postId) => {
         headers: addAuthHeader(),
       }
     );
-    const hashtags = response.data; // 获取 data
+    const hashtags = response.data.results || response.data; // 获取 data
+    if (!Array.isArray(hashtags)) {
+      throw new Error(`Expected an array but got ${typeof hashtags}`);
+    }
     return hashtags.map((tag) => tag.hashtag_text); // 提取 hashtag_text
   } catch (error) {
     console.error("Error fetching hashtags:", error);

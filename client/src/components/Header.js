@@ -159,7 +159,7 @@ export default function PrimarySearchAppBar() {
                 size="large"
                 aria-label="new notifications"
                 color="inherit"
-                onClick={() => handleNavigation('/forumPost')}
+                onClick={() => handleNavigation('/postwithid/1')}
               >
               <Badge badgeContent={17} color="error">
                 <DescriptionIcon />
