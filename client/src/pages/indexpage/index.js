@@ -79,6 +79,7 @@ export default function LoginForm() {
 
       // Save token to localStorage or state management (e.g., Redux)
       localStorage.setItem("token", response.data.token);
+      localStorage.setItem("user", JSON.stringify(response.data.user));
       console.log("Login successful:", response.data);
 
       // Navigate to another page upon successful login

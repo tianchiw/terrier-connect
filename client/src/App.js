@@ -13,6 +13,7 @@ import Index from "./pages/indexpage";
 import ForumPost from "./pages/forumPost";
 import UserMessages from "./pages/follower";
 import PostSearch from "./pages/search";
+import PostWithID from "./pages/forumPost/PostWithID";
 
 // Wrapper component to conditionally render Header
 const HeaderWrapper = ({ children }) => {
@@ -39,6 +40,7 @@ function App() {
           <Route path="/detail" element={<Detail />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/forumPost" element={<ForumPost />} />
+          <Route path="/postwithid/:id" element={<PostWithID />} />
           <Route path="/follower" element={<UserMessages />} />
           <Route path="/search" element={<PostSearch />} />
         </Routes>
