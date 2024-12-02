@@ -52,8 +52,6 @@ const PostWithID = () => {
   const [tags, setTags] = useState([]); // 保存 tags 数据
   const [loadingTags, setLoadingTags] = useState(true); // Tags 加载状态
 
-
-
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user")); // 从 localStorage 获取用户信息
     if (user) { setCurrentUserId(user.id); }

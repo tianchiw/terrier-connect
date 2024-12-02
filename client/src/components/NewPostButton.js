@@ -9,54 +9,98 @@ import {
   Snackbar,
   Alert,
   Grid,
+  Input,
+  Chip,
+  IconButton,
 } from "@mui/material";
+import { Close } from "@mui/icons-material";
 
 const NewPostModal = ({ open, handleClose }) => {
   const [formData, setFormData] = useState({
     title: "",
     eventLocation: "",
     content: "",
+    hashtags: ["Ice cream", "MET"], // Example initial hashtags
+    image: null,
+    newHashtag: "", // For storing the current input for a new hashtag
   });
 
   const [successMessage, setSuccessMessage] = useState(false);
 
-  // Handle input
+  // Handle input changes
   const handleChange = (event) => {
     const { name, value } = event.target;
     setFormData({ ...formData, [name]: value });
   };
 
-  // submit button
+  // Handle image change
+  const handleImageChange = (event) => {
+    setFormData({ ...formData, image: event.target.files[0] });
+  };
+
+  // Add new hashtag to the list
+  const handleAddHashtag = () => {
+    if (formData.newHashtag.trim() !== "" && !formData.hashtags.includes(formData.newHashtag)) {
+      setFormData({
+        ...formData,
+        hashtags: [...formData.hashtags, formData.newHashtag.trim()],
+        newHashtag: "", // Clear the input field after adding
+      });
+    } else {
+      alert("请输入有效且唯一的标签");
+    }
+  };
+
+  // Remove hashtag from the list
+  const handleRemoveHashtag = (hashtagToRemove) => {
+    setFormData({
+      ...formData,
+      hashtags: formData.hashtags.filter((hashtag) => hashtag !== hashtagToRemove),
+    });
+  };
+
+  // Submit handler
   const handleSubmit = async () => {
     if (!formData.title || !formData.eventLocation || !formData.content) {
-      alert("请填写所有必填项");
+      alert("请填写所有必填项，包括选择图片！");
       return;
     }
-  
-    const token = localStorage.getItem("token"); // get stored token
+
+    const token = localStorage.getItem("token");
     if (!token) {
       alert("用户未登录，请先登录！");
       return;
     }
-  
+
+    const data = new FormData();
+    data.append("title", formData.title);
+    data.append("content", formData.content);
+    data.append("hashtags", JSON.stringify(formData.hashtags)); // Convert hashtags to string
+    data.append("image", formData.image);
+
     try {
       const response = await axios.post(
         "http://localhost:8000/posts/add_post/",
-        {
-          content: formData.content,
-          hashtags: ["Ice cream"], // 示例标签，可动态生成
-        },
+        data,
         {
           headers: {
-            Authorization: token, // 添加 Authorization 请求头
+            "Authorization": token,
+            "Content-Type": "multipart/form-data",
           },
         }
       );
-  
+
       console.log("Post created successfully:", response.data);
-      setSuccessMessage(true); // 显示成功消息
-      setFormData({ title: "", eventLocation: "", content: "", description: "" }); // 清空表单
-      handleClose(); // 关闭模态框
+      setSuccessMessage(true);
+      setFormData({
+        title: "",
+        eventLocation: "",
+        content: "",
+        hashtags: [],
+        image: null,
+        newHashtag: "",
+      });
+      handleClose();
     } catch (error) {
       console.error("Error creating post:", error.response || error.message);
       alert("发布失败，请检查您的输入！");
@@ -79,15 +123,11 @@ const NewPostModal = ({ open, handleClose }) => {
             borderRadius: 2,
           }}
         >
-          <Typography
-            id="new-post-modal"
-            variant="h5"
-            sx={{ fontWeight: "bold", mb: 2 }}
-          >
-            create new post
+          <Typography id="new-post-modal" variant="h5" sx={{ fontWeight: "bold", mb: 2 }}>
+            Create New Post
           </Typography>
 
-          {/* Title and location should be at the same line */}
+          {/* Title and location in the same line */}
           <Grid container spacing={2} sx={{ mb: 2 }}>
             <Grid item xs={6}>
               <TextField
@@ -111,7 +151,7 @@ const NewPostModal = ({ open, handleClose }) => {
             </Grid>
           </Grid>
 
-          {/* content */}
+          {/* Content */}
           <TextField
             required
             label="Content"
@@ -119,13 +159,60 @@ const NewPostModal = ({ open, handleClose }) => {
             margin="dense"
             fullWidth
             multiline
-            rows={6} // adjust height
+            rows={6}
             value={formData.content}
             onChange={handleChange}
             sx={{ mb: 2 }}
           />
 
-          {/* post button */}
+          {/* Image Upload */}
+          <Input
+            type="file"
+            accept="image/*"
+            onChange={handleImageChange}
+            sx={{ mb: 2 }}
+          />
+
+          {/* Hashtag Input */}
+          <Grid container spacing={2} sx={{ mb: 2 }}>
+            <Grid item xs={10}>
+              <TextField
+                label="New Hashtag"
+                name="newHashtag"
+                fullWidth
+                value={formData.newHashtag}
+                onChange={handleChange}
+                onKeyDown={(e) => e.key === "Enter" && handleAddHashtag()}
+              />
+            </Grid>
+            <Grid item xs={2}>
+              <Button
+                variant="contained"
+                color="primary"
+                fullWidth
+                onClick={handleAddHashtag}
+                sx={{ height: "100%" }}
+              >
+                Add
+              </Button>
+            </Grid>
+          </Grid>
+
+          {/* Display selected hashtags */}
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, marginBottom: 2 }}>
+            {formData.hashtags.map((hashtag, index) => (
+              <Chip
+                key={index}
+                label={hashtag}
+                onDelete={() => handleRemoveHashtag(hashtag)}
+                deleteIcon={<Close />}
+                color="primary"
+                sx={{ fontSize: "14px", backgroundColor: "#e0f7fa" }}
+              />
+            ))}
+          </Box>
+
+          {/* Post button */}
           <Button
             variant="contained"
             fullWidth
@@ -147,18 +234,14 @@ const NewPostModal = ({ open, handleClose }) => {
         </Box>
       </Modal>
 
-      {/* success message */}
+      {/* Success message */}
       <Snackbar
         open={successMessage}
         autoHideDuration={3000}
         onClose={() => setSuccessMessage(false)}
         anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
-        <Alert
-          onClose={() => setSuccessMessage(false)}
-          severity="success"
-          sx={{ width: "100%" }}
-        >
+        <Alert onClose={() => setSuccessMessage(false)} severity="success" sx={{ width: "100%" }}>
           Post created successfully!
         </Alert>
       </Snackbar>

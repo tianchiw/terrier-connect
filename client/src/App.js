@@ -40,7 +40,7 @@ function App() {
           <Route path="/detail" element={<Detail />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/forumPost" element={<ForumPost />} />
-          <Route path="/postwithid/:id" element={<PostWithID />} />
+          <Route path="/post/:id" element={<PostWithID />} />
           <Route path="/follower" element={<UserMessages />} />
           <Route path="/search" element={<PostSearch />} />
         </Routes>

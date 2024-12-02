@@ -47,11 +47,20 @@ export const getUserDetail = async (userId) => {
 export const getComments = async (postId) => {
   const response = await axios.get(
     `http://localhost:8000/posts/${postId}/comments/?page=1&pageSize=10&orderBy=create_time`,
-    {
-      headers: addAuthHeader(),
-    }
+    {headers: addAuthHeader(),}
   );
   return response.data.results;
+};
+export const createPost = async (postId) => {
+  const response = await axios.post(`http://localhost:8000/posts/add_post/`,
+    {headers: addAuthHeader(),});
+  return response.data;
+};
+
+export const deletePost = async (postId) => {
+  const response = await axios.delete(`http://localhost:8000/posts/delete_post/${postId}/`,
+    {headers: addAuthHeader(),});
+  return response.data;
 };
 
 export const submitComment = async (postId, content, parentId = null) => {
@@ -66,14 +75,6 @@ export const submitComment = async (postId, content, parentId = null) => {
       headers: addAuthHeader(),
     }
   );
-  return response.data;
-};
-
-export const deletePost = async (postId) => {
-  const token = localStorage.getItem("token");
-  const response = await apiClient.delete(`/posts/${postId}/`, {
-    headers: { Authorization: token },
-  });
   return response.data;
 };
 
