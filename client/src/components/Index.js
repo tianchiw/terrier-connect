@@ -11,6 +11,7 @@ import {
   DialogContent,
   DialogActions,
 } from "@mui/material";
+import { useNavigate } from "react-router-dom"; // Import useNavigate
 
 const Index = () => {
   const [openRegister, setOpenRegister] = useState(false);
@@ -25,6 +26,8 @@ const Index = () => {
   const [loading, setLoading] = useState(false); // For loading states
   const [error, setError] = useState(null); // For error handling
   const [user, setUser] = useState(null); // For storing logged-in user data
+
+  const navigate = useNavigate(); // Initialize navigate
 
   // Open/Close Registration Dialog
   const handleRegisterOpen = () => setOpenRegister(true);
@@ -47,7 +50,6 @@ const Index = () => {
     setRegisterForm({ ...registerForm, avatar: file });
   };
 
-  // Login API Call
   const handleLogin = async () => {
     setLoading(true);
     setError(null);
@@ -60,16 +62,20 @@ const Index = () => {
       // Extract token and user information from the response
       const { token, user } = response.data;
 
-      // Store the token and userinfo in localStorage
+      // Save user data to localStorage
       localStorage.setItem("token", token);
-      localStorage.setItem("user", JSON.stringify(response.data.user));
+      localStorage.setItem("user", JSON.stringify(user));
+      localStorage.setItem("userId", user.id); // Save user ID to localStorage
+
       console.log("Login successful:", response.data);
 
-      // Update the user state
+      // Update user state
       setUser(user);
 
-      console.log("Login Success:", response.data);
       alert(`Welcome, ${user.display_name}!`);
+
+      // Redirect to /home after login
+      navigate("/home");
     } catch (err) {
       setError("Login failed. Please check your credentials.");
     } finally {
@@ -110,10 +116,11 @@ const Index = () => {
     }
   };
 
-  // Logout Handler
   const handleLogout = () => {
     // Clear the token and user data
     localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("userId"); // Remove user ID
     setUser(null);
     alert("You have been logged out.");
   };
@@ -133,11 +140,11 @@ const Index = () => {
           color="#cc0000"
           sx={{ fontWeight: "bold", mb: 2 }}
         >
-          terrier connect
+          Terrier Connect
         </Typography>
         <Typography variant="h6" sx={{ color: "gray", mb: 4 }}>
-          Connect with friends and the BU community around you on terrier
-          connect.
+          Connect with friends and the BU community around you on Terrier
+          Connect.
         </Typography>
         <Box
           sx={{
