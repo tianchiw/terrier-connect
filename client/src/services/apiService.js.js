@@ -1,14 +1,12 @@
 import axios from "axios";
 
-// 配置 axios 实例
 const apiClient = axios.create({
-  baseURL: "http://localhost:8000", // 后端基地址
+  baseURL: "http://localhost:8000",
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-// 添加 Token 到请求头
 const addAuthHeader = () => {
   const token = localStorage.getItem("token");
   if (token) {
@@ -17,7 +15,6 @@ const addAuthHeader = () => {
   return {};
 };
 
-// 获取帖子详情
 export const getPostDetail = async (postId) => {
   try {
     const response = await apiClient.get(`/posts/get_post_detail/${postId}/`, {
@@ -26,40 +23,38 @@ export const getPostDetail = async (postId) => {
     return response.data;
   } catch (error) {
     console.error("Error fetching post detail:", error);
-    throw error; // 抛出错误以便调用处处理
+    throw error;
   }
 };
 
-// 获取用户详情
 export const getUserDetail = async (userId) => {
   try {
     const response = await apiClient.get(`/users/user/${userId}/`, {
       headers: addAuthHeader(),
     });
-    return response.data.user; // 返回用户详情
+    return response.data.user;
   } catch (error) {
     console.error("Error fetching user detail:", error);
-    throw error; // 抛出错误以便调用处处理
+    throw error;
   }
 };
 
-// 获取评论列表
 export const getComments = async (postId) => {
-  const response = await axios.get(
-    `http://localhost:8000/posts/${postId}/comments/?page=1&pageSize=10&orderBy=create_time`,
+  const response = await apiClient.get(
+    `/posts/${postId}/comments/?page=1&pageSize=10&orderBy=create_time`,
     {headers: addAuthHeader(),}
   );
   return response.data.results;
 };
 export const createPost = async (postId) => {
-  const response = await axios.post(`http://localhost:8000/posts/add_post/`,
+  const response = await apiClient.post(`/posts/add_post/`,
     {headers: addAuthHeader(),});
   return response.data;
 };
 
 export const updatePost = async (postId, data) => {
   try {
-    const response = await axios.put(`http://localhost:8000/posts/update_post/${postId}/`, data, {
+    const response = await apiClient.put(`/posts/update_post/${postId}/`, data, {
       headers: addAuthHeader(),
     });
     return response.data;
@@ -70,18 +65,18 @@ export const updatePost = async (postId, data) => {
 };
 
 export const deletePost = async (postId) => {
-  const response = await axios.delete(`http://localhost:8000/posts/delete_post/${postId}/`,
+  const response = await apiClient.delete(`/posts/delete_post/${postId}/`,
     {headers: addAuthHeader(),});
   return response.data;
 };
 
 export const submitComment = async (postId, content, parentId = null) => {
-  const response = await axios.post(
-    "http://localhost:8000/posts/comments/create/",
+  const response = await apiClient.post(
+    "/posts/comments/create/",
     {
       post: postId,
       content: content,
-      parent: parentId, // 设置父评论 ID
+      parent: parentId,
     },
     {
       headers: addAuthHeader(),
@@ -90,27 +85,25 @@ export const submitComment = async (postId, content, parentId = null) => {
   return response.data;
 };
 
-// 获取tag API
 export const getPostHashtags = async (postId) => {
   try {
-    const response = await axios.get(
-      `http://localhost:8000/hashtags/get_post_hashtags_by_post_id/${postId}/?page=1&pageSize=20`,
+    const response = await apiClient.get(
+      `/hashtags/get_post_hashtags_by_post_id/${postId}/?page=1&pageSize=20`,
       {
         headers: addAuthHeader(),
       }
     );
-    const hashtags = response.data.results || response.data; // 获取 data
+    const hashtags = response.data.results || response.data;
     if (!Array.isArray(hashtags)) {
       throw new Error(`Expected an array but got ${typeof hashtags}`);
     }
-    return hashtags.map((tag) => tag.hashtag_text); // 提取 hashtag_text
+    return hashtags.map((tag) => tag.hashtag_text);
   } catch (error) {
     console.error("Error fetching hashtags:", error);
-    throw error; // 抛出错误供调用方处理
+    throw error;
   }
 };
 
-// 更新评论 API
 export const updateComment = async (commentId, content) => {
   const token = localStorage.getItem("token");
   const response = await apiClient.put(
@@ -123,7 +116,6 @@ export const updateComment = async (commentId, content) => {
   return response.data;
 };
 
-// 删除评论 API
 export const deleteComment = async (commentId) => {
   const token = localStorage.getItem("token");
   const response = await apiClient.delete(`/posts/comments/${commentId}/`, {

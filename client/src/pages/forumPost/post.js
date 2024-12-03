@@ -161,7 +161,7 @@ const PostWithID = () => {
 
     try {
       const userDetail = await getUserDetail(userId);
-      setUserMap((prev) => ({ ...prev, [userId]: userDetail.display_name || "未知用户" }));
+      setUserMap((prev) => ({ ...prev, [userId]: userDetail.display_name || "unkonwn user" }));
     } catch (error) {
       console.error(`Error fetching user name for userId ${userId}:`, error);
     }
