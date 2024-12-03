@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   AppBar,
   Box,
@@ -27,14 +27,15 @@ import SearchBar from "./SearchBar";
 import axios from "axios";
 
 export default function PrimarySearchAppBar() {
-  const [anchorEl, setAnchorEl] = React.useState(null);
-  const [mobileMoreAnchorEl, setMobileMoreAnchorEl] = React.useState(null);
-  const navigate = useNavigate();
-  const isMenuOpen = Boolean(anchorEl);
-  const isMobileMenuOpen = Boolean(mobileMoreAnchorEl);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [mobileMoreAnchorEl, setMobileMoreAnchorEl] = useState(null);
   const [isSidebarOpen, setSidebarOpen] = useState(false); // Sidebar control
   const [tags, setTags] = useState([]); // To store tags
   const [modalOpen, setModalOpen] = useState(false);
+
+  const navigate = useNavigate();
+  const isMenuOpen = Boolean(anchorEl);
+  const isMobileMenuOpen = Boolean(mobileMoreAnchorEl);
 
   // Fetch popular tags
   const fetchTags = async () => {
@@ -70,10 +71,6 @@ export default function PrimarySearchAppBar() {
     setMobileMoreAnchorEl(null);
   };
 
-  const handleNavigation = (path) => {
-    navigate(path);
-  };
-
   const handleMenuClose = () => {
     setAnchorEl(null);
     handleMobileMenuClose();
@@ -81,6 +78,18 @@ export default function PrimarySearchAppBar() {
 
   const handleMobileMenuOpen = (event) => {
     setMobileMoreAnchorEl(event.currentTarget);
+  };
+
+  const handleProfileClick = () => {
+    handleMenuClose(); // Close the menu
+    navigate("/profile/me"); // Navigate to the current user's profile
+  };
+
+  const handleLogout = () => {
+    // Clear localStorage and redirect to the home page
+    localStorage.clear();
+    alert("You have been logged out.");
+    navigate("/"); // Redirect to the login/home page
   };
 
   const menuId = "primary-search-account-menu";
@@ -100,9 +109,9 @@ export default function PrimarySearchAppBar() {
       open={isMenuOpen}
       onClose={handleMenuClose}
     >
-      <MenuItem onClick={() => handleNavigation("/home")}>Home</MenuItem>
-      <MenuItem onClick={() => handleNavigation("/profile")}>Profile</MenuItem>
-      <MenuItem onClick={() => handleNavigation("/")}>Logout</MenuItem>
+      <MenuItem onClick={() => navigate("/home")}>Home</MenuItem>
+      <MenuItem onClick={handleProfileClick}>Profile</MenuItem>
+      <MenuItem onClick={handleLogout}>Logout</MenuItem>
     </Menu>
   );
 
@@ -143,7 +152,7 @@ export default function PrimarySearchAppBar() {
         </IconButton>
         <p>Notifications</p>
       </MenuItem>
-      <MenuItem onClick={handleProfileMenuOpen}>
+      <MenuItem onClick={handleProfileClick}>
         <IconButton
           size="large"
           aria-label="account of current user"
@@ -201,7 +210,7 @@ export default function PrimarySearchAppBar() {
               size="large"
               aria-label="new notifications"
               color="inherit"
-              onClick={() => handleNavigation("/post/1")}
+              onClick={() => navigate("/postwithid/1")}
             >
               <Badge badgeContent={17} color="error">
                 <DescriptionIcon />
@@ -212,7 +221,7 @@ export default function PrimarySearchAppBar() {
               size="large"
               aria-label="new mails"
               color="inherit"
-              onClick={() => handleNavigation("/follower")}
+              onClick={() => navigate("/follower")}
             >
               <Badge badgeContent={4} color="error">
                 <MailIcon />
