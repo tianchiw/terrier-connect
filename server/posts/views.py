@@ -103,15 +103,24 @@ def update_post(request, post_id):
     except User.DoesNotExist:
         return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 
+    # Retrieve the post instance
     try:
         post = Post.objects.get(pk=post_id, author_id=author.id)
     except Post.DoesNotExist:
         return Response({'error': 'Post not found or not authorized'}, status=status.HTTP_404_NOT_FOUND)
 
-    # Include author in the request data
-    request.data['author'] = author.id
+    # Make a mutable copy of the request data
+    data = request.data.copy()
 
-    serializer = PostSerializer(post, data=request.data)
+    # Check for an uploaded image
+    image = request.FILES.get('image_url')
+    if image:
+        data['image_url'] = image  # Add the image file to the data if provided
+
+    # Include author in the request data
+    data['author'] = author.id
+
+    serializer = PostSerializer(post, data=data, partial=True)  # `partial=True` allows partial updates
     if serializer.is_valid():
         serializer.save()
         return Response(serializer.data)
