@@ -136,13 +136,36 @@ def delete_post(request, post_id):  # Changed `pk` to `post_id`
 @api_view(['GET'])
 def list_posts(request):
     try:
-        user_info = get_user_info(request)
-    except ValueError as e:
-        return Response({'error': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
+        # Get pagination parameters
+        page = request.query_params.get('page', 1)  # Default to page 1
+        page_size = request.query_params.get('pageSize', 10)  # Default page size is 10
 
-    posts = Post.objects.all()  # Retrieve all posts
-    serializer = PostSerializer(posts, many=True)
-    return Response(serializer.data)
+        # Retrieve all posts
+        posts = Post.objects.all().order_by('-create_time')  # Order by creation time (most recent first)
+
+        # Paginate the posts
+        paginator = Paginator(posts, page_size)
+        try:
+            paginated_posts = paginator.page(page)
+        except PageNotAnInteger:
+            return Response({'error': 'Invalid page number.'}, status=status.HTTP_400_BAD_REQUEST)
+        except EmptyPage:
+            return Response({'error': 'Page out of range.'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Serialize the paginated posts
+        serializer = PostSerializer(paginated_posts, many=True)
+
+        # Return the response with pagination info
+        return Response({
+            'page': page,
+            'pageSize': page_size,
+            'totalItems': paginator.count,
+            'totalPages': paginator.num_pages,
+            'results': serializer.data
+        }, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 @receiver(post_save, sender=Post)
 def update_search_vector(sender, instance, **kwargs):
