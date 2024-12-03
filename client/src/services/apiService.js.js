@@ -57,6 +57,18 @@ export const createPost = async (postId) => {
   return response.data;
 };
 
+export const updatePost = async (postId, data) => {
+  try {
+    const response = await axios.put(`http://localhost:8000/posts/update_post/${postId}/`, data, {
+      headers: addAuthHeader(),
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error updating post:", error);
+    throw error;
+  }
+};
+
 export const deletePost = async (postId) => {
   const response = await axios.delete(`http://localhost:8000/posts/delete_post/${postId}/`,
     {headers: addAuthHeader(),});

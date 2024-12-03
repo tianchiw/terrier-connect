@@ -13,7 +13,7 @@ import Index from "./components/Index";
 import ForumPost from "./pages/forumPost";
 import UserMessages from "./pages/follower";
 import PostSearch from "./pages/search";
-import PostWithID from "./pages/forumPost/PostWithID";
+import PostWithID from "./pages/forumPost/post";
 
 // Wrapper component to conditionally render Header
 const HeaderWrapper = ({ children }) => {

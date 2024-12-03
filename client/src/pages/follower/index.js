@@ -18,28 +18,28 @@ const UserMessages = () => {
     {
       id: 1,
       user: {
-        name: "用户1",
+        name: "user 1",
         avatar: "https://via.placeholder.com/150",
       },
-      message: "你好！我们可以一起讨论这个项目吗？",
+      message: "Hello!Can we discuss this project together?",
       time: "2024-11-15 14:00",
     },
     {
       id: 2,
       user: {
-        name: "用户2",
+        name: "user 2",
         avatar: "https://via.placeholder.com/150",
       },
-      message: "这个问题我解决了，谢谢你的帮助！",
+      message: "I solved this problem, thank you for your help!",
       time: "2024-11-15 13:30",
     },
     {
       id: 3,
       user: {
-        name: "用户3",
+        name: "User 3",
         avatar: "https://via.placeholder.com/150",
       },
-      message: "方便的时候可以看看我的新帖子吗？",
+      message: "Can you check out my new post at your convenience?",
       time: "2024-11-15 12:15",
     },
   ];
