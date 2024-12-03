@@ -105,6 +105,7 @@ export default function Profile() {
                   startIcon={<EditIcon />}
                   sx={{ mb: 3 }}
                   fullWidth
+                  onClick={() => navigate("/profile/me/edit")}
                 >
                   Edit Profile
                 </Button>
