@@ -95,17 +95,6 @@ const PostWithID = () => {
     setReplyOpen(true);
   };
 
-  const handlePostUpdated = async() => {
-    try{
-      const commentsData = await getComments(id);
-      setComments(commentsData);
-    } catch (error) {
-      console.error("Error submitting reply:", error);
-      alert("Reply Submission failed, please try again later.");
-    }
-
-  };
-
   const handleEditComment = (comment) => {
     setEditingComment(comment);
     setEditedContent(comment.content);
@@ -292,10 +281,6 @@ const PostWithID = () => {
     );
   }
 
-  const getInitials = (name) => {
-    return name ? name[0].toUpperCase() : "?";
-  };
-
   return (
     <Box>
       {/* Post Info Box */}
@@ -311,16 +296,11 @@ const PostWithID = () => {
               }}
             >
               <Avatar
-                sx={{
-                  width: 60,
-                  height: 60,
-                  bgcolor: "#1976d2", // blue background
-                  margin: "0 auto",
-                  fontSize: "24px",
-                }}
-              >
-                {getInitials(author.display_name)}
-              </Avatar>
+                sx={{ width: 60, height: 60, mb: 2 }}
+                src={`http://localhost:8000${author.avatar_url}`}
+                alt={author.display_name}
+              />
+
               <Typography variant="h6" sx={{ marginBottom: 1 }}>
               Author Info
               </Typography>
@@ -339,18 +319,21 @@ const PostWithID = () => {
               Post Details
               </Typography>
               {post.image_url && (
-                <Box
-                  component="img"
-                  src={post.image_url}
-                  alt="Post Image"
-                  sx={{
-                    width: "100%",
-                    borderRadius: 2,
-                    marginBottom: 2,
-                    display: post.image_url ? "block" : "none",
-                  }}
-                />
-              )}
+          <Box
+            component="img"
+            src={`http://localhost:8000${post.image_url}`}
+            alt="Post Image"
+            sx={{
+              width: "100%",
+              maxWidth: "500px",
+              maxHeight: "300px",
+              borderRadius: 2,
+              marginBottom: 2,
+              objectFit: "contain",
+              display: post.image_url ? "block" : "none",
+            }}
+          />
+        )}
               <Typography variant="body1" sx={{ marginBottom: 2 }}>
                 {post.content}
               </Typography>

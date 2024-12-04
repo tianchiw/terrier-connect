@@ -21,7 +21,7 @@ const NewPostModal = ({ open, handleClose }) => {
     eventLocation: "",
     content: "",
     hashtags: ["Ice cream", "MET"], // Example initial hashtags
-    image: null,
+    image_url: null,
     newHashtag: "", // For storing the current input for a new hashtag
   });
 
@@ -34,9 +34,10 @@ const NewPostModal = ({ open, handleClose }) => {
   };
 
   const handleImageChange = (event) => {
-    const { name, value } = event.target;
-    setFormData({ ...formData, [name]: value });
+    const file = event.target.files[0];
+    setFormData({ ...formData, image_url: file });
   };
+
   // Add new hashtag to the list
   const handleAddHashtag = () => {
     if (formData.newHashtag.trim() !== "" && !formData.hashtags.includes(formData.newHashtag)) {
@@ -75,10 +76,10 @@ const NewPostModal = ({ open, handleClose }) => {
     data.append("title", formData.title);
     data.append("content", formData.content);
     data.append("hashtags", JSON.stringify(formData.hashtags)); // Convert hashtags to string
-    data.append("image", formData.image);
+    data.append("image_url", formData.image_url);
 
     try {
-      console.log("Image:", formData.image);
+      console.log("Image:", data.image_url);
       const response = await axios.post(
         "http://localhost:8000/posts/add_post/",
         data,
@@ -97,7 +98,7 @@ const NewPostModal = ({ open, handleClose }) => {
         eventLocation: "",
         content: "",
         hashtags: [],
-        image: null,
+        image_url: null,
         newHashtag: "",
       });
       handleClose();
@@ -166,12 +167,23 @@ const NewPostModal = ({ open, handleClose }) => {
           />
 
           {/* Image Upload */}
-          <Input
-            type="file"
-            accept="image/*"
-            onChange={handleImageChange}
-            sx={{ mb: 2 }}
-          />
+          <input
+              accept="image/*"
+              type="file"
+              id="avatar-upload"
+              style={{ display: "none" }}
+              onChange={handleImageChange}
+            />
+            <label htmlFor="avatar-upload">
+              <Button variant="outlined" component="span">
+                Choose Image File
+              </Button>
+            </label>
+            {formData.image_url && (
+              <Typography variant="body2" sx={{ mt: 1 }}>
+                Selected file: {formData.image_url.name}
+              </Typography>
+            )}
 
           {/* Hashtag Input */}
           <Grid container spacing={2} sx={{ mb: 2 }}>
