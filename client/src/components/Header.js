@@ -42,14 +42,16 @@ export default function PrimarySearchAppBar() {
     try {
       const token = localStorage.getItem("token"); // Get token from localStorage
       const response = await axios.get(
-        "http://127.0.0.1:8000/hashtags/hashtags_list/",
+        "http://localhost:8000/hashtags/get_popular_hashtags/?page=1&pageSize=10",
         {
           headers: {
             Authorization: token,
           },
         }
       );
-      setTags(response.data);
+
+      // Update tags with the response data
+      setTags(response.data.results); // Access the 'results' array directly
     } catch (error) {
       console.error("Error fetching tags:", error);
     }
@@ -281,20 +283,18 @@ export default function PrimarySearchAppBar() {
           }}
         >
           <Typography variant="h5" sx={{ mb: 2, fontWeight: "bold" }}>
-            Popular Tags
+            Most Popular Tags
           </Typography>
+
+          {/* Display the tags */}
           <List>
             {tags.map((tag) => (
               <ListItem key={tag.id} button>
-                <ListItemText
-                  primary={`#${tag.hashtag_text}`}
-                  secondary={`Created on: ${new Date(
-                    tag.created_time
-                  ).toLocaleDateString()}`}
-                />
+                <ListItemText primary={`#${tag.hashtag_text}`} />
               </ListItem>
             ))}
           </List>
+
           <Button
             variant="outlined"
             sx={{ mt: "auto" }}
