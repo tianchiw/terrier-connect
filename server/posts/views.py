@@ -43,6 +43,8 @@ def add_post(request):
         return Response({'error': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
 
     hashtags = request.data.get('hashtags', '[]')
+    if not hashtags or len(hashtags) == 0:
+        hashtags = '[]'
     try:
         hashtags = json.loads(hashtags)
     except json.JSONDecodeError:
