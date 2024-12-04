@@ -54,18 +54,7 @@ def add_post(request):
     except User.DoesNotExist:
         return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 
-    # Make a mutable copy of the request data
-    data = request.data.copy()
-    data['author'] = author.id  # Set the author field in the data
-
-    # Check for an uploaded image
-    image = request.FILES.get('image_url')  # Access the uploaded file
-
-    # Add the image file to the data if provided
-    if image:
-        data['image_url'] = image
-
-    serializer = PostSerializer(data=data)
+    serializer = PostSerializer(data=request.data, context={'author': author})
     if serializer.is_valid():
         # Save the post with the author's instance
         serializer.save()

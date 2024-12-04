@@ -8,6 +8,12 @@ class PostSerializer(serializers.ModelSerializer):
     class Meta:
         model = Post
         fields = ['id','title', 'content', 'image_url', 'timestamp', 'geolocation', 'author', 'create_time', 'update_time']
+        # It is required to let the overrided create() work
+        read_only_fields = ['author'] # Mark 'author' as read-only to exclude it from user input
+
+    def create(self, validated_data):
+        author = self.context['author']
+        return Post.objects.create(author=author, **validated_data)
 
 class CommentSerializer(serializers.ModelSerializer):
     replies = serializers.SerializerMethodField()
