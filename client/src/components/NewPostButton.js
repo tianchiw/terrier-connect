@@ -33,11 +33,10 @@ const NewPostModal = ({ open, handleClose }) => {
     setFormData({ ...formData, [name]: value });
   };
 
-  // Handle image change
   const handleImageChange = (event) => {
-    setFormData({ ...formData, image: event.target.files[0] });
+    const { name, value } = event.target;
+    setFormData({ ...formData, [name]: value });
   };
-
   // Add new hashtag to the list
   const handleAddHashtag = () => {
     if (formData.newHashtag.trim() !== "" && !formData.hashtags.includes(formData.newHashtag)) {
@@ -47,7 +46,7 @@ const NewPostModal = ({ open, handleClose }) => {
         newHashtag: "", // Clear the input field after adding
       });
     } else {
-      alert("请输入有效且唯一的标签");
+      alert("Please input practical tag!");
     }
   };
 
@@ -62,13 +61,13 @@ const NewPostModal = ({ open, handleClose }) => {
   // Submit handler
   const handleSubmit = async () => {
     if (!formData.title || !formData.eventLocation || !formData.content) {
-      alert("请填写所有必填项，包括选择图片！");
+      alert("Please fill out all required fields, including selecting an image!");
       return;
     }
 
     const token = localStorage.getItem("token");
     if (!token) {
-      alert("用户未登录，请先登录！");
+      alert("User is not logged in, please log in first!");
       return;
     }
 
@@ -79,6 +78,7 @@ const NewPostModal = ({ open, handleClose }) => {
     data.append("image", formData.image);
 
     try {
+      console.log("Image:", formData.image);
       const response = await axios.post(
         "http://localhost:8000/posts/add_post/",
         data,
@@ -103,7 +103,7 @@ const NewPostModal = ({ open, handleClose }) => {
       handleClose();
     } catch (error) {
       console.error("Error creating post:", error.response || error.message);
-      alert("发布失败，请检查您的输入！");
+      alert("Posting failed, please check your input!");
     }
   };
 
