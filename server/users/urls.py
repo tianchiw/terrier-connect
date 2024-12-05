@@ -12,4 +12,6 @@ urlpatterns = [
     path('<int:user_id>/followers/', views.list_followers, name='list_followers'),
     path('<int:user_id>/following/', views.list_following, name='list_following'),  # Added for listing following users
     path('update_profile/', views.update_user_info, name='update_user_info'),
+    path('update_profile/', views.update_profile, name='update_profile'),
+    path('change_password/', views.change_password, name='change_password'),
 ]
