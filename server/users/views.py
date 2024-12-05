@@ -372,56 +372,19 @@ def list_following(request, user_id):
 
 @api_view(['PUT'])
 @parser_classes([MultiPartParser, FormParser])
-def update_user_info(request):
+def update_profile(request):
     try:
         user_info = get_user_info(request)
         user = User.objects.get(id=user_info['id'])
         
-        data = request.data
+        # Check if the user is trying to modify their own profile
+        if user.id != request.user.id:
+            return Response(
+                {'error': "You don't have permission to modify other users' profiles"}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
         
-        # Password update with validation
-        if 'newPassword' in data:
-            old_password = data.get('oldPassword')
-            new_password = data.get('newPassword')
-            confirm_password = data.get('confirmPassword')
-            
-            # Check if old password exists
-            if not old_password:
-                return Response({'error': 'Old password is required'}, 
-                              status=status.HTTP_400_BAD_REQUEST)
-            
-            # Verify old password
-            if not user.check_password(old_password):
-                return Response({'error': 'Current password is incorrect'}, 
-                              status=status.HTTP_400_BAD_REQUEST)
-            
-            # Check password confirmation
-            if new_password != confirm_password:
-                return Response({'error': 'New passwords do not match'}, 
-                              status=status.HTTP_400_BAD_REQUEST)
-            
-            # Check if new password matches any previous passwords
-            if hasattr(user, 'password_history'):
-                for old_hash in user.password_history.split(','):
-                    if old_hash and check_password(new_password, old_hash):
-                        return Response(
-                            {'error': 'Already used the Password in the past. Please try a New Password.'}, 
-                            status=status.HTTP_400_BAD_REQUEST
-                        )
-            
-            # Validate new password
-            try:
-                validate_password(new_password, user)
-                # Store the old password hash in history before updating
-                if hasattr(user, 'password_history'):
-                    user.password_history = f"{user.password},{user.password_history}"
-                else:
-                    user.password_history = user.password
-                # Set new password
-                user.set_password(new_password)
-            except ValidationError as e:
-                return Response({'error': e.messages}, 
-                              status=status.HTTP_400_BAD_REQUEST)
+        data = request.data
         
         # Update display name
         if 'display_name' in data:
@@ -430,6 +393,11 @@ def update_user_info(request):
                 return Response({'error': 'Display name already taken'}, 
                               status=status.HTTP_400_BAD_REQUEST)
             user.display_name = display_name
+        
+        # Update bio
+        if 'bio' in data:
+            bio = data['bio']
+            user.bio = bio.strip() if bio else None
         
         # Update avatar
         if 'avatar_url' in request.FILES:
@@ -448,11 +416,69 @@ def update_user_info(request):
                 'id': user.id,
                 'email': user.email,
                 'display_name': user.display_name,
-                'bio': user.bio,
-                'avatar_url': user.avatar_url.url if user.avatar_url else None
+                **({'bio': user.bio} if user.bio else {}),
+                **({'avatar_url': user.avatar_url.url} if user.avatar_url else {})
             }
         })
         
+    except ValueError as e:
+        return Response({'error': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['PUT'])
+def change_password(request):
+    try:
+        user_info = get_user_info(request)
+        user = User.objects.get(id=user_info['id'])
+        
+        data = request.data
+        old_password = data.get('oldPassword')
+        new_password = data.get('newPassword')
+        confirm_password = data.get('confirmPassword')
+        
+        # Check if old password exists
+        if not old_password:
+            return Response({'error': 'Old password is required'}, 
+                          status=status.HTTP_400_BAD_REQUEST)
+        
+        # Verify old password
+        if not user.check_password(old_password):
+            return Response({'error': 'Current password is incorrect'}, 
+                          status=status.HTTP_400_BAD_REQUEST)
+        
+        # Check password confirmation
+        if new_password != confirm_password:
+            return Response({'error': 'New passwords do not match'}, 
+                          status=status.HTTP_400_BAD_REQUEST)
+        
+        # Check if new password matches any previous passwords
+        if hasattr(user, 'password_history'):
+            for old_hash in user.password_history.split(','):
+                if old_hash and check_password(new_password, old_hash):
+                    return Response(
+                        {'error': 'Already used the Password in the past. Please try a New Password.'}, 
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+        
+        # Validate new password
+        try:
+            validate_password(new_password, user)
+            # Store the old password hash in history before updating
+            if hasattr(user, 'password_history'):
+                user.password_history = f"{user.password},{user.password_history}"
+            else:
+                user.password_history = user.password
+            # Set new password
+            user.set_password(new_password)
+            user.save()
+            
+            return Response({'message': 'Password updated successfully'})
+            
+        except ValidationError as e:
+            return Response({'error': e.messages}, 
+                          status=status.HTTP_400_BAD_REQUEST)
+            
     except ValueError as e:
         return Response({'error': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
     except User.DoesNotExist:
