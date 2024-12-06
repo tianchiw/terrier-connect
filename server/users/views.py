@@ -363,7 +363,7 @@ def list_following(request, user_id):
 @parser_classes([MultiPartParser, FormParser])
 def update_profile(request):
     try:
-        # Get user info from the token
+        # Get user from token
         user_info = get_user_info(request)
         user = User.objects.get(id=user_info['id'])
         
@@ -372,6 +372,11 @@ def update_profile(request):
         # Update display name if provided
         if 'display_name' in data:
             display_name = data['display_name'].strip()
+            if not display_name:
+                return Response(
+                    {'error': 'Username is required'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
             if User.objects.exclude(id=user.id).filter(display_name=display_name).exists():
                 return Response(
                     {'error': 'Display name already taken'}, 
@@ -384,6 +389,11 @@ def update_profile(request):
             email = data['email'].strip()
             try:
                 validate_email(email)
+                if not email.endswith('@bu.edu'):
+                    return Response(
+                        {'error': 'Only @bu.edu email addresses are allowed'}, 
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
                 if User.objects.exclude(id=user.id).filter(email=email).exists():
                     return Response(
                         {'error': 'Email already registered'}, 
@@ -447,7 +457,6 @@ def update_profile(request):
             {'error': str(e)}, 
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
-    
 @api_view(['PUT'])
 def change_password(request):
     try:
