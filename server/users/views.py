@@ -361,13 +361,25 @@ def list_following(request, user_id):
 
 @api_view(['PUT'])
 @parser_classes([MultiPartParser, FormParser])
-@permission_classes([IsAuthenticated])
 def update_profile(request):
     try:
-        user = request.user
+        # Get user info from the token
+        user_info = get_user_info(request)
+        user = User.objects.get(id=user_info['id'])
+        
         data = request.data
         
-        # Validate email
+        # Update display name if provided
+        if 'display_name' in data:
+            display_name = data['display_name'].strip()
+            if User.objects.exclude(id=user.id).filter(display_name=display_name).exists():
+                return Response(
+                    {'error': 'Display name already taken'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            user.display_name = display_name
+            
+        # Update email if provided
         if 'email' in data:
             email = data['email'].strip()
             try:
@@ -383,28 +395,12 @@ def update_profile(request):
                     {'error': 'Invalid email format'}, 
                     status=status.HTTP_400_BAD_REQUEST
                 )
-        
-        # Validate display name
-        if 'display_name' in data:
-            display_name = data['display_name'].strip()
-            if User.objects.exclude(id=user.id).filter(display_name=display_name).exists():
-                return Response(
-                    {'error': 'Display name already taken'}, 
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            user.display_name = display_name
-        
-        # Update bio
+                
+        # Update bio if provided
         if 'bio' in data:
-            bio = data['bio'].strip() if data['bio'] else None
-            if bio and len(bio) > 500:  # Add maximum length validation
-                return Response(
-                    {'error': 'Bio exceeds maximum length'}, 
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            user.bio = bio
-        
-        # Handle avatar upload
+            user.bio = data['bio'].strip() if data['bio'] else None
+            
+        # Update avatar if provided
         if 'avatar_url' in request.FILES:
             avatar = request.FILES['avatar_url']
             if not avatar.content_type.startswith('image/'):
@@ -415,36 +411,37 @@ def update_profile(request):
             
             # Delete old avatar if exists
             if user.avatar_url:
-                try:
-                    default_storage.delete(user.avatar_url.path)
-                except Exception:
-                    pass
+                default_storage.delete(user.avatar_url.path)
                 
-            # Save new avatar with secure filename
             avatar_path = default_storage.save(
                 f'user_avatars/{user.id}_{avatar.name}', 
                 avatar
             )
             user.avatar_url = avatar_path
-        
+            
         user.save()
         
-        # Return updated user data
-        response_data = {
+        return Response({
             'message': 'Profile updated successfully',
             'user': {
                 'id': user.id,
                 'email': user.email,
                 'display_name': user.display_name,
-                'bio': user.bio or '',  # Always include bio
+                'bio': user.bio or '',
+                'avatar_url': user.avatar_url.url if user.avatar_url else None
             }
-        }
+        })
         
-        if user.avatar_url:
-            response_data['user']['avatar_url'] = user.avatar_url.url
-            
-        return Response(response_data)
-        
+    except ValueError as e:
+        return Response(
+            {'error': str(e)}, 
+            status=status.HTTP_401_UNAUTHORIZED
+        )
+    except User.DoesNotExist:
+        return Response(
+            {'error': 'User not found'}, 
+            status=status.HTTP_404_NOT_FOUND
+        )
     except Exception as e:
         return Response(
             {'error': str(e)}, 
