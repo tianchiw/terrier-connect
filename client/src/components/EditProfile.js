@@ -13,10 +13,9 @@ import { useNavigate } from "react-router-dom";
 const EditProfile = () => {
   const [form, setForm] = useState({
     displayName: "",
-    oldPassword: "",
-    newPassword: "",
-    confirmPassword: "",
+    bio: "",
     avatar: null,
+    email: "",
   });
   const [loading, setLoading] = useState(true); // For loading state
   const [error, setError] = useState(null); // For error handling
@@ -46,6 +45,8 @@ const EditProfile = () => {
         setForm((prevForm) => ({
           ...prevForm,
           displayName: response.data.user.display_name,
+          bio: response.data.user.bio || "",
+          email: response.data.user.email,
         }));
       } catch (err) {
         console.error("Error fetching user data:", err);
@@ -77,9 +78,8 @@ const EditProfile = () => {
 
     const formData = new FormData();
     formData.append("display_name", form.displayName);
-    formData.append("oldPassword", form.oldPassword);
-    formData.append("newPassword", form.newPassword);
-    formData.append("confirmPassword", form.confirmPassword);
+    formData.append("bio", form.bio);
+    formData.append("email", form.email);
     if (form.avatar) {
       formData.append("avatar_url", form.avatar);
     }
@@ -140,28 +140,19 @@ const EditProfile = () => {
             variant="outlined"
           />
           <TextField
-            label="Old Password"
-            name="oldPassword"
-            type="password"
-            value={form.oldPassword}
+            label="Bio"
+            name="bio"
+            value={form.bio}
             onChange={handleInputChange}
             fullWidth
             variant="outlined"
+            multiline
+            rows={3}
           />
           <TextField
-            label="New Password"
-            name="newPassword"
-            type="password"
-            value={form.newPassword}
-            onChange={handleInputChange}
-            fullWidth
-            variant="outlined"
-          />
-          <TextField
-            label="Confirm Password"
-            name="confirmPassword"
-            type="password"
-            value={form.confirmPassword}
+            label="Email"
+            name="email"
+            value={form.email}
             onChange={handleInputChange}
             fullWidth
             variant="outlined"
@@ -202,6 +193,14 @@ const EditProfile = () => {
             onClick={() => navigate("/profile/me")}
           >
             Cancel
+          </Button>
+          <Button
+            variant="outlined"
+            color="warning"
+            sx={{ mt: 2 }}
+            onClick={() => navigate("/profile/me/change-password")}
+          >
+            Change Password
           </Button>
         </Box>
       )}
