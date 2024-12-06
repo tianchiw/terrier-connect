@@ -1,34 +1,23 @@
 from django.conf import settings
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from rest_framework import status
 from django.contrib.auth.hashers import check_password, make_password
-import jwt
-import datetime
-from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage  # Import for pagination
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from rest_framework import status
-from .models import UserFollowRel, User
-# Register API
-from django.core.exceptions import ValidationError
-from django.core.validators import validate_email
-from posts.views import get_user_info
-from .models import User, UserFollowRel
-import re
-from rest_framework.parsers import MultiPartParser, FormParser
-from rest_framework.decorators import parser_classes
-from django.core.files.storage import default_storage
-#Password Validation
-from django.contrib.auth.hashers import check_password
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
-from rest_framework.decorators import api_view, parser_classes
-from rest_framework.parsers import MultiPartParser, FormParser
-from rest_framework.response import Response
-from rest_framework import status
 from django.core.files.storage import default_storage
+from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
+from django.core.validators import validate_email
 
+from rest_framework import status
+from rest_framework.decorators import api_view, parser_classes, permission_classes
+from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+
+from .models import User, UserFollowRel
+from posts.views import get_user_info
+
+import jwt
+import datetime
+import re
 
 
 # Helper function to check password strength
@@ -372,60 +361,96 @@ def list_following(request, user_id):
 
 @api_view(['PUT'])
 @parser_classes([MultiPartParser, FormParser])
+@permission_classes([IsAuthenticated])
 def update_profile(request):
     try:
-        user_info = get_user_info(request)
-        user = User.objects.get(id=user_info['id'])
-        
-        # Check if the user is trying to modify their own profile
-        if user.id != request.user.id:
-            return Response(
-                {'error': "You don't have permission to modify other users' profiles"}, 
-                status=status.HTTP_403_FORBIDDEN
-            )
-        
+        user = request.user
         data = request.data
         
-        # Update display name
+        # Validate email
+        if 'email' in data:
+            email = data['email'].strip()
+            try:
+                validate_email(email)
+                if User.objects.exclude(id=user.id).filter(email=email).exists():
+                    return Response(
+                        {'error': 'Email already registered'}, 
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                user.email = email
+            except ValidationError:
+                return Response(
+                    {'error': 'Invalid email format'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        # Validate display name
         if 'display_name' in data:
             display_name = data['display_name'].strip()
             if User.objects.exclude(id=user.id).filter(display_name=display_name).exists():
-                return Response({'error': 'Display name already taken'}, 
-                              status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {'error': 'Display name already taken'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
             user.display_name = display_name
         
         # Update bio
         if 'bio' in data:
-            bio = data['bio']
-            user.bio = bio.strip() if bio else None
+            bio = data['bio'].strip() if data['bio'] else None
+            if bio and len(bio) > 500:  # Add maximum length validation
+                return Response(
+                    {'error': 'Bio exceeds maximum length'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            user.bio = bio
         
-        # Update avatar
+        # Handle avatar upload
         if 'avatar_url' in request.FILES:
             avatar = request.FILES['avatar_url']
             if not avatar.content_type.startswith('image/'):
-                return Response({'error': 'File must be an image'}, 
-                              status=status.HTTP_400_BAD_REQUEST)
-            avatar_path = default_storage.save(f'user_avatars/{avatar.name}', avatar)
+                return Response(
+                    {'error': 'File must be an image'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Delete old avatar if exists
+            if user.avatar_url:
+                try:
+                    default_storage.delete(user.avatar_url.path)
+                except Exception:
+                    pass
+                
+            # Save new avatar with secure filename
+            avatar_path = default_storage.save(
+                f'user_avatars/{user.id}_{avatar.name}', 
+                avatar
+            )
             user.avatar_url = avatar_path
         
         user.save()
         
-        return Response({
+        # Return updated user data
+        response_data = {
             'message': 'Profile updated successfully',
             'user': {
                 'id': user.id,
                 'email': user.email,
                 'display_name': user.display_name,
-                **({'bio': user.bio} if user.bio else {}),
-                **({'avatar_url': user.avatar_url.url} if user.avatar_url else {})
+                'bio': user.bio or '',  # Always include bio
             }
-        })
+        }
         
-    except ValueError as e:
-        return Response({'error': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
-    except User.DoesNotExist:
-        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
-
+        if user.avatar_url:
+            response_data['user']['avatar_url'] = user.avatar_url.url
+            
+        return Response(response_data)
+        
+    except Exception as e:
+        return Response(
+            {'error': str(e)}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+    
 @api_view(['PUT'])
 def change_password(request):
     try:
