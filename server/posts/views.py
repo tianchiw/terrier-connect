@@ -158,12 +158,32 @@ def delete_post(request, post_id):  # Changed `pk` to `post_id`
 @api_view(['GET'])
 def list_posts(request):
     try:
+        # Get the flag parameter
+        flag = request.query_params.get('flag', 'all')  # Default to 'all'
+
         # Get pagination parameters
         page = request.query_params.get('page', 1)  # Default to page 1
         page_size = request.query_params.get('pageSize', 10)  # Default page size is 10
 
-        # Retrieve all posts
-        posts = Post.objects.all().order_by('-create_time')  # Order by creation time (most recent first)
+        # Get user info for 'following' flag
+        user_info = None
+        if flag == 'following':
+            try:
+                user_info = get_user_info(request)
+            except ValueError as e:
+                return Response({'error': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
+
+        # Retrieve posts based on the flag
+        if flag == 'following' and user_info:
+            # Get the current user
+            user = User.objects.get(id=user_info['id'])
+            # Get the list of users the current user follows
+            followed_users = UserFollowRel.objects.filter(follower=user).values_list('following_id', flat=True)
+            # Filter posts by followed users
+            posts = Post.objects.filter(author_id__in=followed_users).order_by('-create_time')
+        else:
+            # Retrieve all posts
+            posts = Post.objects.all().order_by('-create_time')
 
         # Paginate the posts
         paginator = Paginator(posts, page_size)
@@ -197,6 +217,7 @@ def list_posts(request):
             'totalPages': paginator.num_pages,
             'results': posts_data
         }, status=status.HTTP_200_OK)
+
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
