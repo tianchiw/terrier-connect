@@ -43,8 +43,6 @@ def add_post(request):
         return Response({'error': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
 
     hashtags = request.data.get('hashtags', '[]')
-    if not hashtags or len(hashtags) == 0:
-        hashtags = '[]'
     try:
         hashtags = json.loads(hashtags)
     except json.JSONDecodeError:
@@ -56,7 +54,18 @@ def add_post(request):
     except User.DoesNotExist:
         return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 
-    serializer = PostSerializer(data=request.data, context={'author': author})
+    # Make a mutable copy of the request data
+    data = request.data.copy()
+    data['author'] = author.id  # Set the author field in the data
+
+    # Check for an uploaded image
+    image = request.FILES.get('image_url')  # Access the uploaded file
+
+    # Add the image file to the data if provided
+    if image:
+        data['image_url'] = image
+
+    serializer = PostSerializer(data=data)
     if serializer.is_valid():
         # Save the post with the author's instance
         serializer.save()
@@ -78,8 +87,21 @@ def get_post_detail(request, post_id):
     except Post.DoesNotExist:
         return Response({'error': 'Post not found'}, status=status.HTTP_404_NOT_FOUND)
 
-    serializer = PostSerializer(post)
-    return Response(serializer.data)
+    # Serialize the post
+    post_serializer = PostSerializer(post)
+
+    # Retrieve hashtags related to the post
+    post_hashtag_rels = PostHashtagRel.objects.filter(post_id=post)
+    hashtags = [rel.hashtag_id for rel in post_hashtag_rels]
+    
+    # Serialize the hashtags
+    hashtags_data = [hashtag.hashtag_text for hashtag in hashtags]
+
+    # Combine post details with hashtags
+    response_data = post_serializer.data
+    response_data['hashtags'] = hashtags_data
+
+    return Response(response_data, status=status.HTTP_200_OK)
 
 @api_view(['PUT'])
 def update_post(request, post_id):
@@ -153,7 +175,19 @@ def list_posts(request):
             return Response({'error': 'Page out of range.'}, status=status.HTTP_404_NOT_FOUND)
 
         # Serialize the paginated posts
-        serializer = PostSerializer(paginated_posts, many=True)
+        posts_data = []
+        for post in paginated_posts:
+            post_serializer = PostSerializer(post)
+
+            # Retrieve hashtags related to the post
+            post_hashtag_rels = PostHashtagRel.objects.filter(post_id=post)
+            hashtags = [rel.hashtag_id.hashtag_text for rel in post_hashtag_rels]
+
+            # Add hashtags to the post data
+            post_data = post_serializer.data
+            post_data['hashtags'] = hashtags
+
+            posts_data.append(post_data)
 
         # Return the response with pagination info
         return Response({
@@ -161,11 +195,10 @@ def list_posts(request):
             'pageSize': page_size,
             'totalItems': paginator.count,
             'totalPages': paginator.num_pages,
-            'results': serializer.data
+            'results': posts_data
         }, status=status.HTTP_200_OK)
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 
 @receiver(post_save, sender=Post)
 def update_search_vector(sender, instance, **kwargs):
