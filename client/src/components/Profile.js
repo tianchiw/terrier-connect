@@ -19,8 +19,10 @@ export default function Profile() {
   const [user, setUser] = useState(null); // User information state
   const [loading, setLoading] = useState(true); // Loading state
   const [error, setError] = useState(null); // Error state
+  const [isFollowing, setIsFollowing] = useState(false); // Follow state
+  const [followingList, setFollowingList] = useState([]); // Following users list
 
-  // If id is undefined (e.g., for /profile/me), use the logged-in user's id
+  // Determine the userId based on the URL or localStorage
   const userId =
     id === undefined || id === "me"
       ? parseInt(localStorage.getItem("userId"), 10)
@@ -28,6 +30,7 @@ export default function Profile() {
 
   // Get the logged-in user's id for comparison
   const loggedInUserId = parseInt(localStorage.getItem("userId"), 10);
+  const token = localStorage.getItem("token"); // Retrieve token from localStorage
 
   useEffect(() => {
     if (!userId || isNaN(userId)) {
@@ -36,10 +39,10 @@ export default function Profile() {
       return;
     }
 
-    const fetchUser = async () => {
+    const fetchUserData = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const response = await axios.get(
+        // Fetch the user data
+        const userResponse = await axios.get(
           `http://localhost:8000/users/user/${userId}/`,
           {
             headers: {
@@ -47,17 +50,67 @@ export default function Profile() {
             },
           }
         );
-        setUser(response.data.user);
+        setUser(userResponse.data.user);
+
+        // Fetch the following list only if viewing another user's profile
+        if (userId !== loggedInUserId) {
+          const followingResponse = await axios.get(
+            `http://localhost:8000/users/${loggedInUserId}/following/`,
+            {
+              headers: {
+                Authorization: token,
+              },
+            }
+          );
+          setFollowingList(followingResponse.data.results);
+
+          // Check if the target user is in the following list
+          const isFollowingUser = followingResponse.data.results.some(
+            (followedUser) => followedUser.id === userId
+          );
+          setIsFollowing(isFollowingUser);
+        }
       } catch (err) {
-        console.error("Error fetching user:", err);
+        console.error("Error fetching user data:", err);
         setError("Failed to fetch user information.");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchUser();
-  }, [userId, navigate]);
+    fetchUserData();
+  }, [userId, loggedInUserId, navigate, token]);
+
+  const handleFollow = async () => {
+    try {
+      const response = await axios.post(
+        `http://localhost:8000/users/${userId}/follow/`,
+        {},
+        {
+          headers: { Authorization: token },
+        }
+      );
+      setIsFollowing(true); // Update follow state
+    } catch (err) {
+      console.error("Error following user:", err);
+      alert("Failed to follow the user.");
+    }
+  };
+
+  const handleUnfollow = async () => {
+    try {
+      const response = await axios.delete(
+        `http://localhost:8000/users/${userId}/unfollow/`,
+        {
+          headers: { Authorization: token },
+        }
+      );
+      setIsFollowing(false); // Update follow state
+    } catch (err) {
+      console.error("Error unfollowing user:", err);
+      alert("Failed to unfollow the user.");
+    }
+  };
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
@@ -99,7 +152,7 @@ export default function Profile() {
               </Box>
 
               {/* Show Edit Button Only for Logged-In User's Profile */}
-              {userId === loggedInUserId && (
+              {userId === loggedInUserId ? (
                 <Button
                   variant="outlined"
                   startIcon={<EditIcon />}
@@ -108,6 +161,16 @@ export default function Profile() {
                   onClick={() => navigate("/profile/me/edit")}
                 >
                   Edit Profile
+                </Button>
+              ) : (
+                // Follow/Unfollow Button for Other Users
+                <Button
+                  variant={isFollowing ? "contained" : "outlined"}
+                  color={isFollowing ? "error" : "primary"}
+                  sx={{ mt: 3 }}
+                  onClick={isFollowing ? handleUnfollow : handleFollow}
+                >
+                  {isFollowing ? "Unfollow" : "Follow"}
                 </Button>
               )}
 
