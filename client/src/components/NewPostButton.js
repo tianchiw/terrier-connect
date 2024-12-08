@@ -23,7 +23,7 @@ const NewPostModal = ({ open, handleClose }) => {
     title: "",
     eventLocation: "",
     content: "",
-    hashtags: ["Ice cream", "MET"], // Example initial hashtags
+    hashtags: [], // Example initial hashtags
     image_url: null,
     newHashtag: "", // For storing the current input for a new hashtag
   });

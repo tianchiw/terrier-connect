@@ -14,7 +14,6 @@ import {
   Divider,
 } from "@mui/material";
 import AddCommentIcon from "@mui/icons-material/AddComment";
-import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import {
   getPostDetail,
@@ -22,12 +21,10 @@ import {
   getComments,
   submitComment,
   deletePost,
-  updateComment,
   deleteComment,
-  fetchTags,
   getPostHashtags,
 } from "../../services/apiService.js.js";
-import { postBoxStyle } from "./postStyles.js";
+import { postBoxStyle, commentStyle } from "./postStyles.js";
 import EditPost from "./editpost.js";
 import MapView from "./Map.js";
 
@@ -48,10 +45,7 @@ const PostWithID = () => {
   const [replyContent, setReplyContent] = useState("");
   const [currentUserId, setCurrentUserId] = useState(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [editingComment, setEditingComment] = useState(null);
-  const [editedContent, setEditedContent] = useState("");
   const [tags, setTags] = useState([]);
-  const [loadingTags, setLoadingTags] = useState(true);
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));
@@ -67,6 +61,9 @@ const PostWithID = () => {
 
         const commentsData = await getComments(id);
         setComments(commentsData);
+
+        const tagTexts = await getPostHashtags(id);
+        setTags(tagTexts);
       } catch (err) {
         console.error("Error fetching data:", err);
         setError("Unable to load data! ");
@@ -75,43 +72,11 @@ const PostWithID = () => {
       }
     };
     fetchData();
-
-    const fetchTags = async () => {
-      try {
-        const tagTexts = await getPostHashtags(id);
-        setTags(tagTexts);
-      } catch (err) {
-        console.error("Error fetching tags:", err);
-        setError("Unable to load tag data! ");
-      } finally {
-        setLoadingTags(false);
-      }
-    };
-
-    fetchTags();
   }, [id]);
 
   const handleReplyClick = (commentId) => {
     setParentId(commentId);
     setReplyOpen(true);
-  };
-
-  const handleEditComment = (comment) => {
-    setEditingComment(comment);
-    setEditedContent(comment.content);
-  };
-
-  const handleDeleteComment = async (commentId) => {
-    try {
-      await deleteComment(commentId);
-      alert("Comment deleted!");
-      // Update comment area
-      const commentsData = await getComments(id);
-      setComments(commentsData);
-    } catch (error) {
-      console.error("Error deleting comment:", error);
-      alert("Failed to delete comment!");
-    }
   };
 
   const handleCommentSubmit = async () => {
@@ -151,7 +116,7 @@ const PostWithID = () => {
 
     try {
       const userDetail = await getUserDetail(userId);
-      setUserMap((prev) => ({ ...prev, [userId]: userDetail.display_name || "unkonwn user" }));
+      setUserMap((prev) => ({ ...prev, [userId]: userDetail || "unkonwn user" }));
     } catch (error) {
       console.error(`Error fetching user name for userId ${userId}:`, error);
     }
@@ -160,46 +125,83 @@ const PostWithID = () => {
   const renderReplies = (replies) =>
     replies.map((reply) => {
       fetchUserName(reply.author);
-
+  
       return (
         <Box
           key={reply.id}
           sx={{
-            paddingLeft: 4,
-            marginTop: 1,
-            borderLeft: "1px solid #ddd",
-            backgroundColor: "#f9f9f9",
-            borderRadius: 2,
+            marginBottom: 2,
             padding: 2,
+            border: "2px solid #ddd",
+            borderRadius: 2,
+            backgroundColor: "#f9f9f9",
+            marginLeft: 5, // Indent for replies
           }}
         >
-          <Typography variant="body2" color="textSecondary" sx={{ marginBottom: 1 }}>
-            {reply.content}
-          </Typography>
-          <Typography variant="caption" color="textSecondary">
-            {userMap[reply.author] ? `${userMap[reply.author]} - ` : "Loading..."}Time:{" "}
-            {new Date(reply.create_time).toLocaleString()}
-          </Typography>
-          <Box sx={{ marginTop: 1 }}>
-            <Button size="small" onClick={() => handleReplyClick(reply.id)}>
-              Reply
-            </Button>
-            {currentUserId === reply.author && (
-              <>
-                <Button size="small" onClick={() => handleEditComment(reply)}>
-                  Edit
+          {/* Main Reply Section */}
+          <Box sx={{ display: "flex", alignItems: "flex-start" }}>
+            {/* Render Avatar */}
+            <Avatar
+              sx={{
+                width: 40,
+                height: 40,
+                marginRight: 2,
+                cursor: "pointer", // Indicate clickable
+                "&:hover": { border: "1px solid #1976d2" }, // Add hover effect
+              }}
+              src={
+                userMap[reply.author]?.avatar_url
+                  ? `http://localhost:8000${userMap[reply.author]?.avatar_url}`
+                  : ""
+              }
+              alt={userMap[reply.author]?.display_name || "User"}
+              onClick={() => navigate(`/profile/${reply.author}`)}
+            />
+  
+            {/* Render Reply Details */}
+            <Box sx={{ flex: 1 }}>
+              {/* Top Row: Username and Timestamp */}
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: 1,
+                }}
+              >
+                <Box>
+                  <Typography variant="body1" sx={{ fontWeight: "bold" }}>
+                    {userMap[reply.author]?.display_name || "Unknown User"}
+                  </Typography>
+                  <Typography variant="caption" color="textSecondary">
+                    {new Date(reply.create_time).toLocaleString()}
+                  </Typography>
+                </Box>
+  
+                {/* Reply Button */}
+                <Button
+                  size="small"
+                  onClick={() => handleReplyClick(reply.id)}
+                  sx={{ alignSelf: "flex-start" }}
+                >
+                  Reply
                 </Button>
-                <Button size="small" color="error" onClick={() => handleDeleteComment(reply.id)}>
-                  Delete
-                </Button>
-              </>
-            )}
+              </Box>
+  
+              {/* Reply Content */}
+              <Typography variant="body1">{reply.content}</Typography>
+            </Box>
           </Box>
-          {/* Render sub replies */}
-          {reply.replies && reply.replies.length > 0 && renderReplies(reply.replies)}
+  
+          {/* Render Sub Replies Section */}
+          {reply.replies && reply.replies.length > 0 && (
+            <Box>
+              {renderReplies(reply.replies)}
+            </Box>
+          )}
         </Box>
       );
-    });
+    });  
 
   const renderComments = () =>
     comments.map((comment) => {
@@ -216,29 +218,67 @@ const PostWithID = () => {
             backgroundColor: "#f9f9f9",
           }}
         >
-          <Typography variant="body1" sx={{ fontWeight: "bold", marginBottom: 1 }}>
-            {comment.content}
-          </Typography>
-          <Typography variant="caption" color="textSecondary">
-            {userMap[comment.author] ? `${userMap[comment.author]} - ` : "Loading..."}Time:{" "}
-            {new Date(comment.create_time).toLocaleString()}
-          </Typography>
-          <Box sx={{ marginTop: 1 }}>
-            <Button size="small" onClick={() => handleReplyClick(comment.id)}>
-              Reply
-            </Button>
-            {currentUserId === comment.author && (
-              <>
-                <Button size="small" onClick={() => handleEditComment(comment)}>
-                  Edit
+          {/* Main Comment Section */}
+          <Box sx={{ display: "flex", alignItems: "flex-start" }}>
+            {/* Render Avatar */}
+            <Avatar
+              sx={{
+                width: 40,
+                height: 40,
+                marginRight: 2,
+                cursor: "pointer",
+                "&:hover": { border: "1px solid #1976d2" },
+              }}
+              src={
+                userMap[comment.author]?.avatar_url
+                  ? `http://localhost:8000${userMap[comment.author]?.avatar_url}`
+                  : ""
+              }
+              alt={userMap[comment.author]?.display_name || "User"}
+              onClick={() => navigate(`/profile/${comment.author}`)}
+            />
+
+            {/* Render Comment Details */}
+            <Box sx={{ flex: 1 }}>
+              {/* Top Row: Username and Timestamp */}
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: 1,
+                }}
+              >
+                <Box>
+                  <Typography variant="body1" sx={{ fontWeight: "bold" }}>
+                    {userMap[comment.author]?.display_name || "Unknown User"}
+                  </Typography>
+                  <Typography variant="caption" color="textSecondary">
+                    {new Date(comment.create_time).toLocaleString()}
+                  </Typography>
+                </Box>
+
+                {/* Reply Button */}
+                <Button
+                  size="small"
+                  onClick={() => handleReplyClick(comment.id)}
+                  sx={{ alignSelf: "flex-start" }}
+                >
+                  Reply
                 </Button>
-                <Button size="small" color="error" onClick={() => handleDeleteComment(comment.id)}>
-                  Delete
-                </Button>
-              </>
-            )}
+              </Box>
+
+              {/* Comment Content */}
+              <Typography variant="body1">{comment.content}</Typography>
+            </Box>
           </Box>
-          {comment.replies && renderReplies(comment.replies)}
+
+          {/* Render Replies Section */}
+          {comment.replies && (
+            <Box sx={{ marginTop: 1 }}>
+              {renderReplies(comment.replies)}
+            </Box>
+          )}
         </Box>
       );
     });
@@ -255,15 +295,6 @@ const PostWithID = () => {
       setDeleteConfirmOpen(false);
     }
   };
-
-  if (loadingTags) {
-    return (
-      <Box sx={{ textAlign: "center", marginTop: 2 }}>
-        <CircularProgress />
-        <Typography sx={{ marginTop: 2 }}>Loading tags...</Typography>
-      </Box>
-    );
-  }
 
   if (loading) {
     return (
@@ -286,7 +317,7 @@ const PostWithID = () => {
     <Box>
       {/* Post Info Box */}
       <Box sx={postBoxStyle}>
-        <Grid container spacing={2}>
+        <Grid container spacing={1}>
           {/* Author information on the left */}
           <Grid item xs={12} md={2}>
             <Box
@@ -297,19 +328,23 @@ const PostWithID = () => {
               }}
             >
               <Avatar
-                sx={{ width: 60, height: 60, mb: 2 }}
+                sx={{ width: 60, height: 60, mb: 2,
+                  cursor: "pointer", // Indicate clickable
+                  "&:hover": {
+                    border: "2px solid #1976d2", // Add border on hover
+                    boxShadow: "0 0 10px rgba(0, 0, 0, 0.3)", // Optional: Add shadow for hover effect
+                  },
+                }}
                 src={`http://localhost:8000${author.avatar_url}`}
+                onClick={() => navigate(`/profile/${author.id}`)} // Add navigate function
                 alt={author.display_name}
               />
 
               <Typography variant="h6" sx={{ marginBottom: 1 }}>
-              Author Info
+              {author.display_name || "No name"}
               </Typography>
-              <Typography variant="body1">Name: {author.display_name || "not provided"}</Typography>
               <Typography variant="body1">Email: {author.email}</Typography>
-              <Typography variant="body2" color="textSecondary">
-              Profile: {author.bio || "No Profile"}
-              </Typography>
+              <Typography variant="body2">Profile: {author.bio || "No Profile"}</Typography>
             </Box>
           </Grid>
 
@@ -352,7 +387,7 @@ const PostWithID = () => {
                 <Typography variant="h6" sx={{ marginBottom: 1 }}>
                   Tags:
                 </Typography>
-                {loadingTags ? (
+                {loading ? (
                   <Typography>Loading Tags...</Typography>
                 ) : error ? (
                   <Typography color="error">{error}</Typography>
@@ -395,7 +430,7 @@ const PostWithID = () => {
         }}
       >
         <Typography variant="h5" sx={{ marginBottom: 2 }}>
-          comments
+          Comments
         </Typography>
         <Divider sx={{ marginBottom: 2 }} />
         {renderComments()}
@@ -413,12 +448,7 @@ const PostWithID = () => {
       {/* Edit button (visible only to the author) */}
       {currentUserId === post.author && (
         <>
-
-
-          <EditPost
-              postId={post.id}
-              
-            />
+          <EditPost postId={post.id}/>
 
           {/* Delete button */}
           <Fab
@@ -434,17 +464,7 @@ const PostWithID = () => {
       {/* Comment dialog box */}
       <Modal open={open} onClose={() => setOpen(false)}>
         <Box
-          sx={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            width: 400,
-            bgcolor: "background.paper",
-            boxShadow: 24,
-            borderRadius: 2,
-            p: 4,
-          }}
+          sx={commentStyle}
         >
           <Typography variant="h6" sx={{ marginBottom: 2 }}>
           Add a comment
@@ -470,19 +490,7 @@ const PostWithID = () => {
 
       {/* Respond to the dialog box */}
       <Modal open={replyOpen} onClose={() => setReplyOpen(false)}>
-        <Box
-          sx={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            width: 400,
-            bgcolor: "background.paper",
-            boxShadow: 24,
-            borderRadius: 2,
-            p: 4,
-          }}
-        >
+        <Box sx={commentStyle}>
           <Typography variant="h6" sx={{ marginBottom: 2 }}>
             reply
           </Typography>
@@ -507,19 +515,7 @@ const PostWithID = () => {
 
       {/* Delete Confirmation Box */}
       <Modal open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)}>
-        <Box
-          sx={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            width: 400,
-            bgcolor: "background.paper",
-            boxShadow: 24,
-            borderRadius: 2,
-            p: 4,
-          }}
-        >
+        <Box sx={commentStyle}>
           <Typography variant="h6" sx={{ marginBottom: 2 }}>
           Confirm deletion
           </Typography>

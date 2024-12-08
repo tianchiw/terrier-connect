@@ -17,7 +17,6 @@ import {
 import { useNavigate } from "react-router-dom";
 import MenuIcon from "@mui/icons-material/Menu";
 import NoteAddIcon from "@mui/icons-material/NoteAdd";
-import DescriptionIcon from "@mui/icons-material/Description";
 import AccountCircle from "@mui/icons-material/AccountCircle";
 import MailIcon from "@mui/icons-material/Mail";
 import NotificationsIcon from "@mui/icons-material/Notifications";
@@ -184,6 +183,7 @@ export default function PrimarySearchAppBar() {
           >
             <MenuIcon />
           </IconButton>
+          
           <Typography
             variant="h6"
             noWrap
@@ -205,38 +205,6 @@ export default function PrimarySearchAppBar() {
             >
               <Badge>
                 <NoteAddIcon />
-              </Badge>
-            </IconButton>
-
-            <IconButton
-              size="large"
-              aria-label="new notifications"
-              color="inherit"
-              onClick={() => navigate("/post/1")}
-            >
-              <Badge badgeContent={17} color="error">
-                <DescriptionIcon />
-              </Badge>
-            </IconButton>
-
-            <IconButton
-              size="large"
-              aria-label="new mails"
-              color="inherit"
-              onClick={() => navigate("/follower")}
-            >
-              <Badge badgeContent={4} color="error">
-                <MailIcon />
-              </Badge>
-            </IconButton>
-
-            <IconButton
-              size="large"
-              aria-label="new notifications"
-              color="inherit"
-            >
-              <Badge badgeContent={17} color="error">
-                <NotificationsIcon />
               </Badge>
             </IconButton>
 

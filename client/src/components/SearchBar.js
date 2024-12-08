@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { styled, alpha } from "@mui/material/styles";
-import { Box, IconButton, InputBase, Select, MenuItem, FormControl, InputLabel } from "@mui/material";
+import { Box, IconButton, InputBase, Select, MenuItem, FormControl } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import { useNavigate } from "react-router-dom";
 
@@ -45,9 +45,9 @@ const SearchBar = () => {
   const handleSearch = () => {
     if (query.trim()) {
       if (searchType === "keyword") {
-        navigate(`/search?type=key&query=${encodeURIComponent(query)}&orderBy=-create_time`);
+        navigate(`/search?searchType=key&query=${encodeURIComponent(query)}&orderBy=-create_time`);
       } else {
-        navigate(`/search?type=tag&query=${encodeURIComponent(query)}`);
+        navigate(`/search?searchType=tag&query=${encodeURIComponent(query)}`);
       }
     } else {
       alert("Please enter a search term!");
