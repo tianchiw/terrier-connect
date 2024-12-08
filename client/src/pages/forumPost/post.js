@@ -21,7 +21,6 @@ import {
   getComments,
   submitComment,
   deletePost,
-  deleteComment,
   getPostHashtags,
 } from "../../services/apiService.js.js";
 import { postBoxStyle, commentStyle } from "./postStyles.js";
