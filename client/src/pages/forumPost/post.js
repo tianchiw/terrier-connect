@@ -71,7 +71,6 @@ const PostWithID = () => {
   };
 
     fetchData();
-    fetchPost();
   }, [id]);
 
   const handleReplyClick = (commentId) => {

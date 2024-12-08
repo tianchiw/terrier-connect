@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Box, TextField, Button, Modal, Grid, Chip, Typography, Fab } from "@mui/material";
+import { Box, TextField, Button, Modal, Grid, Chip, Typography, Snackbar, Alert, Fab } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import { Close } from "@mui/icons-material";
 import { getPostDetail } from "../../services/apiService.js";
@@ -15,6 +15,7 @@ const EditPost = ({ postId, onPostUpdated  }) => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(false);
 
   useEffect(() => {
     if (postId && open) {
@@ -71,7 +72,10 @@ const EditPost = ({ postId, onPostUpdated  }) => {
         const updatedPost = await updatePost(postId, updatedData);
         onPostUpdated(updatedPost);
         setOpen(false);
-
+        setSuccessMessage(true);
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
       } catch (error) {
         console.error("Error updating post:", error);
         alert("Failed to update post. Please try again."); 
@@ -197,6 +201,16 @@ const EditPost = ({ postId, onPostUpdated  }) => {
   </Box>
 </Modal>
 
+      <Snackbar
+        open={successMessage}
+        autoHideDuration={3000}
+        onClose={() => setSuccessMessage(false)}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert onClose={() => setSuccessMessage(false)} severity="success">
+          Post updated successfully! Auto refreshing...
+        </Alert>
+      </Snackbar>
     </>
   );
 };

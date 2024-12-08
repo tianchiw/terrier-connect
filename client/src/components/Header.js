@@ -189,6 +189,7 @@ export default function PrimarySearchAppBar() {
             noWrap
             component="div"
             sx={{ display: { xs: "none", sm: "block" } }}
+            onClick={() => navigate(`/home`)}
           >
             Terrier Connect
           </Typography>
