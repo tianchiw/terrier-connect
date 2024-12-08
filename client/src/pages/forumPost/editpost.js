@@ -5,7 +5,7 @@ import { Close } from "@mui/icons-material";
 import { getPostDetail } from "../../services/apiService.js";
 import { updatePost } from "../../services/apiService.js";
 
-const EditPost = ({ postId, onUpdatePost }) => {
+const EditPost = ({ postId }) => {
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
@@ -68,7 +68,7 @@ const EditPost = ({ postId, onUpdatePost }) => {
           content: formData.content,
           hashtags: formData.hashtags,
         };
-    
+        console.log(updatedData);
         const updatedPost = await updatePost(postId, updatedData);
         console.log(updatedPost);
 
