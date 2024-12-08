@@ -29,6 +29,7 @@ import {
 } from "../../services/apiService.js.js";
 import { postBoxStyle } from "./postStyles.js";
 import EditPost from "./editpost.js";
+import MapView from "./Map.js";
 
 
 const PostWithID = () => {
@@ -367,6 +368,17 @@ const PostWithID = () => {
                   </Box>
                 )}
               </Box>
+              {/* Map Diplay */}
+              {post.geolocation && (
+                <Box sx={{ marginTop: 4 }}>
+                  <MapView
+                    geolocation={{
+                      lng: parseFloat(post.geolocation.split(",")[0].slice(1)),
+                      lat: parseFloat(post.geolocation.split(",")[1].slice(0, -1)),
+                    }}
+                  />
+                </Box>
+              )}
             </Box>
           </Grid>
         </Grid>

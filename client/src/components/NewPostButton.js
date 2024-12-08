@@ -12,8 +12,11 @@ import {
   Input,
   Chip,
   IconButton,
+  Switch,
+  FormControlLabel,
 } from "@mui/material";
 import { Close } from "@mui/icons-material";
+import MapView from "./MapSelection";
 
 const NewPostModal = ({ open, handleClose }) => {
   const [formData, setFormData] = useState({
@@ -26,6 +29,7 @@ const NewPostModal = ({ open, handleClose }) => {
   });
 
   const [successMessage, setSuccessMessage] = useState(false);
+  const [mapEnabled, setMapEnabled] = useState(true); // State to control map visibility
 
   // Handle input changes
   const handleChange = (event) => {
@@ -61,8 +65,8 @@ const NewPostModal = ({ open, handleClose }) => {
 
   // Submit handler
   const handleSubmit = async () => {
-    if (!formData.title || !formData.eventLocation || !formData.content) {
-      alert("Please fill out all required fields, including selecting an image!");
+    if (!formData.title || !formData.content) {
+      alert("Please fill out all required fields!");
       return;
     }
 
@@ -76,7 +80,12 @@ const NewPostModal = ({ open, handleClose }) => {
     data.append("title", formData.title);
     data.append("content", formData.content);
     data.append("hashtags", JSON.stringify(formData.hashtags)); // Convert hashtags to string
-    data.append("image_url", formData.image_url);
+    if (formData.image_url) {
+      data.append("image_url", formData.image_url);
+    }
+    if (formData.eventLocation) {
+      data.append("geolocation", formData.eventLocation);
+    }
 
     try {
       console.log("Image:", data.image_url);
@@ -108,6 +117,22 @@ const NewPostModal = ({ open, handleClose }) => {
     }
   };
 
+  // Handle map coordinates change
+  const handleCoordinatesChange = (coords) => {
+    const coordsString = `[${coords.lng}, ${coords.lat}]`;
+    setFormData({ ...formData, eventLocation: coordsString });
+  };
+
+  // Handle the map switch
+  const handleMapSwitch = (event) => {
+    const isMapOn = event.target.checked;
+    setMapEnabled(isMapOn);
+    if (!isMapOn) {
+      // Reset event location and selected coordinates when map is off
+      setFormData({ ...formData, eventLocation: "" });
+    }
+  };
+
   return (
     <>
       <Modal open={open} onClose={handleClose} aria-labelledby="new-post-modal">
@@ -118,6 +143,8 @@ const NewPostModal = ({ open, handleClose }) => {
             left: "50%",
             transform: "translate(-50%, -50%)",
             width: "80%",
+            maxHeight: "80vh", // Limit the height of the box
+            overflowY: "auto", // Enable scrolling if content overflows
             bgcolor: "background.paper",
             boxShadow: 24,
             p: 4,
@@ -128,25 +155,15 @@ const NewPostModal = ({ open, handleClose }) => {
             Create New Post
           </Typography>
 
-          {/* Title and location in the same line */}
+          {/* Title */}
           <Grid container spacing={2} sx={{ mb: 2 }}>
-            <Grid item xs={6}>
+            <Grid item xs={12}>
               <TextField
                 required
                 label="Title"
                 name="title"
                 fullWidth
                 value={formData.title}
-                onChange={handleChange}
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField
-                required
-                label="Location"
-                name="eventLocation"
-                fullWidth
-                value={formData.eventLocation}
                 onChange={handleChange}
               />
             </Grid>
@@ -223,6 +240,26 @@ const NewPostModal = ({ open, handleClose }) => {
               />
             ))}
           </Box>
+
+          {/* Map Switch */}
+          <FormControlLabel
+            control={
+              <Switch
+                checked={mapEnabled}
+                onChange={handleMapSwitch}
+                color="primary"
+              />
+            }
+            label="Enable Map Selection"
+            sx={{ mb: 2 }}
+          />
+
+          {/* Conditional Map Display */}
+          {mapEnabled && (
+            <div style={{ marginBottom: "16px" }}>
+              <MapView onCoordinatesChange={handleCoordinatesChange} />
+            </div>
+          )}
 
           {/* Post button */}
           <Button

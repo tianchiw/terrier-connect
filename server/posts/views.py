@@ -43,6 +43,8 @@ def add_post(request):
         return Response({'error': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
 
     hashtags = request.data.get('hashtags', '[]')
+    if not hashtags or len(hashtags) == 0:
+        hashtags = '[]'
     try:
         hashtags = json.loads(hashtags)
     except json.JSONDecodeError:
@@ -53,26 +55,15 @@ def add_post(request):
         author = User.objects.get(id=user_info['id'])
     except User.DoesNotExist:
         return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
-
-    # Make a mutable copy of the request data
-    data = request.data.copy()
-    data['author'] = author.id  # Set the author field in the data
-
-    # Check for an uploaded image
-    image = request.FILES.get('image_url')  # Access the uploaded file
-
-    # Add the image file to the data if provided
-    if image:
-        data['image_url'] = image
-
-    serializer = PostSerializer(data=data)
+    print(request.data)
+    serializer = PostSerializer(data=request.data, context={'author': author})
     if serializer.is_valid():
         # Save the post with the author's instance
         serializer.save()
         # Add post-hashtags relationship
         add_post_hashtags_rel(serializer.instance, hashtags)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-
+    print(serializer.is_valid())
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
