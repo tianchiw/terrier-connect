@@ -1,29 +1,46 @@
 import React, { useState, useEffect } from "react";
-import { Box, TextField, Button, List, ListItem, ListItemText, Typography, Divider, FormControl, InputLabel, Select, MenuItem, Pagination, Stack } from "@mui/material";
+import {
+  Box,
+  TextField,
+  Button,
+  List,
+  ListItem,
+  ListItemText,
+  Typography,
+  Divider,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Pagination,
+  Stack,
+} from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 
 const PostSearch = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [searchType, setSearchType] = useState("keyword"); // Track search type
+  const [searchType, setSearchType] = useState("keyword"); // Default search type
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null); 
-  const [page, setPage] = useState(1); // Track current page
-  const [totalPages, setTotalPages] = useState(1); // Track total pages
-  const [totalItems, setTotalItems] = useState(0); // Track total items
-  const [pageSize, setPageSize] = useState(3); // Number of results per page
+  const [error, setError] = useState(null);
+  const [page, setPage] = useState(1); // Current page
+  const [totalPages, setTotalPages] = useState(1); // Total pages
+  const [pageSize, setPageSize] = useState(3); // Results per page
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Parse URL parameters
   const query = new URLSearchParams(location.search).get("query");
+  const type = new URLSearchParams(location.search).get("searchType") || "keyword";
 
   useEffect(() => {
+    setSearchType(type); // Set searchType based on URL parameter
+    setSearchTerm(query || ""); // Set searchTerm based on URL parameter
     if (query) {
-      setSearchTerm(query);
-      fetchSearchResults(query, searchType, page, pageSize);
+      fetchSearchResults(query, type, page, pageSize);
     }
-  }, [query, searchType, page, pageSize]);
+  }, [query, type, page, pageSize]); // React to changes in query, type, page, or pageSize
 
   const fetchSearchResults = async (query, searchType, page, pageSize) => {
     setLoading(true);
@@ -31,23 +48,23 @@ const PostSearch = () => {
 
     try {
       let response;
-      if (searchType === "keyword") {
+      if (searchType === "tag") {
+        response = await axios.get("http://localhost:8000/posts/list_posts_by_tag/", {
+          params: { tag: query, page, pageSize },
+        });
+      
+      } else if (searchType === "keyword") {
         response = await axios.get("http://localhost:8000/posts/full_text_search/", {
           params: { query, page, pageSize, orderBy: "-create_time" },
         });
-      } else {
-        response = await axios.get("http://127.0.0.1:8000/posts/list_posts_by_tag/", {
-          params: { tag: query, page, pageSize },
-        });
       }
 
-      // Update search results, totalItems, and totalPages
       setSearchResults(response.data.results);
-      setTotalItems(response.data.totalItems);
       setTotalPages(response.data.totalPages);
+      setError(null); // Clear previous errors
     } catch (err) {
       console.error("Error fetching search results:", err);
-      setError("Failed to fetch search results. Please try again. Tags must be precisely matched.");
+      setError("Failed to fetch search results. Tags must be precisely matched.");
     } finally {
       setLoading(false);
     }
@@ -58,35 +75,27 @@ const PostSearch = () => {
   };
 
   const handleSearchTypeChange = (event) => {
-    setSearchType(event.target.value); // Update search type based on dropdown selection
+    setSearchType(event.target.value);
   };
 
   const handleSearch = () => {
     if (searchTerm.trim()) {
-      if (searchType === "keyword") {
-        navigate(`/search?type=keyword&query=${encodeURIComponent(searchTerm)}&orderBy=-create_time&page=1`);
-      } else {
-        navigate(`/search?type=tag&query=${encodeURIComponent(searchTerm)}&page=1`);
-      }
+      navigate(`/search?searchType=${searchType}&query=${encodeURIComponent(searchTerm)}&page=1`);
+      setPage(1); // Reset to first page on new search
     } else {
       alert("Please enter a search term!");
     }
   };
 
-  const handleNavigate = (id) => {
-    navigate(`/post/${id}`);
-  };
-
   const handlePageChange = (event, value) => {
     setPage(value);
-    navigate(`/search?type=${searchType}&query=${encodeURIComponent(searchTerm)}&page=${value}`);
+    navigate(`/search?searchType=${searchType}&query=${encodeURIComponent(searchTerm)}&page=${value}`);
   };
 
   return (
     <Box sx={{ maxWidth: 800, margin: "auto", padding: 2 }}>
       {/* Search bar */}
       <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-        {/* Search type dropdown */}
         <FormControl sx={{ minWidth: 120, marginRight: 2 }}>
           <InputLabel>Search Type</InputLabel>
           <Select
@@ -113,7 +122,7 @@ const PostSearch = () => {
         </Button>
       </Box>
 
-      {/* Post list */}
+      {/* Search results */}
       {loading ? (
         <Typography align="center">Loading...</Typography>
       ) : error ? (
@@ -126,7 +135,7 @@ const PostSearch = () => {
             <React.Fragment key={post.id}>
               <ListItem
                 button
-                onClick={() => handleNavigate(post.id)}
+                onClick={() => navigate(`/post/${post.id}`)}
                 sx={{
                   display: "flex",
                   flexDirection: "column",

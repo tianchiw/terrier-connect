@@ -408,8 +408,12 @@ const PostWithID = () => {
                 )}
               </Box>
               {/* Map Diplay */}
+
               {post.geolocation && (
                 <Box sx={{ marginTop: 4 }}>
+                  <Typography variant="h6" sx={{ marginBottom: 1 }}>
+                  Location:
+                  </Typography>
                   <MapView
                     geolocation={{
                       lng: parseFloat(post.geolocation.split(",")[0].slice(1)),

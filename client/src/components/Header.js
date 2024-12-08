@@ -133,38 +133,10 @@ export default function PrimarySearchAppBar() {
       open={isMobileMenuOpen}
       onClose={handleMobileMenuClose}
     >
-      <MenuItem>
-        <IconButton size="large" aria-label="show 4 new mails" color="inherit">
-          <Badge badgeContent={4} color="error">
-            <MailIcon />
-          </Badge>
-        </IconButton>
-        <p>Messages</p>
-      </MenuItem>
-      <MenuItem>
-        <IconButton
-          size="large"
-          aria-label="show 17 new notifications"
-          color="inherit"
-        >
-          <Badge badgeContent={17} color="error">
-            <NotificationsIcon />
-          </Badge>
-        </IconButton>
-        <p>Notifications</p>
-      </MenuItem>
-      <MenuItem onClick={handleProfileClick}>
-        <IconButton
-          size="large"
-          aria-label="account of current user"
-          aria-controls="primary-search-account-menu"
-          aria-haspopup="true"
-          color="inherit"
-        >
-          <AccountCircle />
-        </IconButton>
-        <p>Profile</p>
-      </MenuItem>
+      <MenuItem onClick={() => setModalOpen(true)}>NewPost</MenuItem>
+      <MenuItem onClick={() => navigate("/home")}>Home</MenuItem>
+      <MenuItem onClick={handleProfileClick}>Profile</MenuItem>
+      <MenuItem onClick={handleLogout}>Logout</MenuItem>
     </Menu>
   );
 
@@ -258,7 +230,8 @@ export default function PrimarySearchAppBar() {
           {/* Display the tags */}
           <List>
             {tags.map((tag) => (
-              <ListItem key={tag.id} button>
+              <ListItem key={tag.id} button 
+                onClick={() => navigate(`/search?searchType=tag&query=${tag.hashtag_text}`)}>
                 <ListItemText primary={`#${tag.hashtag_text}`} />
               </ListItem>
             ))}

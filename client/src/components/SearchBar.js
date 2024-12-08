@@ -45,7 +45,7 @@ const SearchBar = () => {
   const handleSearch = () => {
     if (query.trim()) {
       if (searchType === "keyword") {
-        navigate(`/search?searchType=key&query=${encodeURIComponent(query)}&orderBy=-create_time`);
+        navigate(`/search?searchType=keyword&query=${encodeURIComponent(query)}&orderBy=-create_time`);
       } else {
         navigate(`/search?searchType=tag&query=${encodeURIComponent(query)}`);
       }
