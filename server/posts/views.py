@@ -43,8 +43,6 @@ def add_post(request):
         return Response({'error': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
 
     hashtags = request.data.get('hashtags', '[]')
-    if not hashtags or len(hashtags) == 0:
-        hashtags = '[]'
     try:
         hashtags = json.loads(hashtags)
     except json.JSONDecodeError:
@@ -55,15 +53,26 @@ def add_post(request):
         author = User.objects.get(id=user_info['id'])
     except User.DoesNotExist:
         return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
-    print(request.data)
-    serializer = PostSerializer(data=request.data, context={'author': author})
+
+    # Make a mutable copy of the request data
+    data = request.data.copy()
+    data['author'] = author.id  # Set the author field in the data
+
+    # Check for an uploaded image
+    image = request.FILES.get('image_url')  # Access the uploaded file
+
+    # Add the image file to the data if provided
+    if image:
+        data['image_url'] = image
+
+    serializer = PostSerializer(data=data)
     if serializer.is_valid():
         # Save the post with the author's instance
         serializer.save()
         # Add post-hashtags relationship
         add_post_hashtags_rel(serializer.instance, hashtags)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-    print(serializer.is_valid())
+
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
@@ -101,33 +110,47 @@ def update_post(request, post_id):
     except ValueError as e:
         return Response({'error': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
 
-    # Retrieve the user instance based on the decoded JWT token ID
+    
     try:
         author = User.objects.get(id=user_info['id'])
     except User.DoesNotExist:
         return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 
-    # Retrieve the post instance
+    
     try:
         post = Post.objects.get(pk=post_id, author_id=author.id)
     except Post.DoesNotExist:
         return Response({'error': 'Post not found or not authorized'}, status=status.HTTP_404_NOT_FOUND)
 
-    # Make a mutable copy of the request data
+    
     data = request.data.copy()
 
     # Check for an uploaded image
     image = request.FILES.get('image_url')
     if image:
-        data['image_url'] = image  # Add the image file to the data if provided
+        data['image_url'] = image  
 
-    # Include author in the request data
+    
     data['author'] = author.id
 
+    # Parse hashtags from request
+    hashtags = request.data.get('hashtags', '[]')
+    try:
+        hashtags = json.loads(hashtags)
+    except json.JSONDecodeError:
+        return Response({'error': 'Invalid JSON format for hashtags'}, status=status.HTTP_400_BAD_REQUEST)
+
+    
     serializer = PostSerializer(post, data=data, partial=True)  # `partial=True` allows partial updates
     if serializer.is_valid():
         serializer.save()
-        return Response(serializer.data)
+
+        
+        PostHashtagRel.objects.filter(post_id=post).delete()  # Remove existing hashtags
+        add_post_hashtags_rel(serializer.instance, hashtags)  # Add new hashtags
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['DELETE'])
