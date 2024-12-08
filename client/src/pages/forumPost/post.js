@@ -47,30 +47,31 @@ const PostWithID = () => {
   const [tags, setTags] = useState([]);
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user"));
-    if (user) { setCurrentUserId(user.id); }
+   const user = JSON.parse(localStorage.getItem("user"));
+  if (user) { setCurrentUserId(user.id); }   
+      const fetchData = async () => {
+    try {
+      const postDetail = await getPostDetail(id);
+      setPost(postDetail);
 
-    const fetchData = async () => {
-      try {
-        const postDetail = await getPostDetail(id);
-        setPost(postDetail);
+      const userDetail = await getUserDetail(postDetail.author);
+      setAuthor(userDetail);
 
-        const userDetail = await getUserDetail(postDetail.author);
-        setAuthor(userDetail);
+      const commentsData = await getComments(id);
+      setComments(commentsData);
 
-        const commentsData = await getComments(id);
-        setComments(commentsData);
+      const tagTexts = await getPostHashtags(id);
+      setTags(tagTexts);
+    } catch (err) {
+      console.error("Error fetching data:", err);
+      setError("Unable to load data! ");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        const tagTexts = await getPostHashtags(id);
-        setTags(tagTexts);
-      } catch (err) {
-        console.error("Error fetching data:", err);
-        setError("Unable to load data! ");
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchData();
+    fetchPost();
   }, [id]);
 
   const handleReplyClick = (commentId) => {
@@ -119,6 +120,11 @@ const PostWithID = () => {
     } catch (error) {
       console.error(`Error fetching user name for userId ${userId}:`, error);
     }
+  };
+
+  const fetchPost = async () => {
+    const postData = await getPostDetail(id);
+    setPost(postData);
   };
 
   const renderReplies = (replies) =>
@@ -447,7 +453,7 @@ const PostWithID = () => {
       {/* Edit button (visible only to the author) */}
       {currentUserId === post.author && (
         <>
-          <EditPost postId={post.id}/>
+          <EditPost postId={post.id} onPostUpdated={fetchPost}/>
 
           {/* Delete button */}
           <Fab

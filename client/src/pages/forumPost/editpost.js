@@ -5,7 +5,7 @@ import { Close } from "@mui/icons-material";
 import { getPostDetail } from "../../services/apiService.js";
 import { updatePost } from "../../services/apiService.js";
 
-const EditPost = ({ postId }) => {
+const EditPost = ({ postId, onPostUpdated  }) => {
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
@@ -66,13 +66,12 @@ const EditPost = ({ postId }) => {
         const updatedData = {
           title: formData.title,
           content: formData.content,
-          hashtags: formData.hashtags,
+          hashtags: JSON.stringify(formData.hashtags),
         };
-        console.log(updatedData);
         const updatedPost = await updatePost(postId, updatedData);
-        console.log(updatedPost);
-
+        onPostUpdated(updatedPost);
         setOpen(false);
+
       } catch (error) {
         console.error("Error updating post:", error);
         alert("Failed to update post. Please try again."); 
@@ -122,8 +121,8 @@ const EditPost = ({ postId }) => {
               label="Title"
               name="title"
               fullWidth
-              value={formData.title}  // 表单填充标题内容
-              onChange={handleChange}  // 处理标题内容变化
+              value={formData.title} 
+              onChange={handleChange} 
             />
           </Grid>
 
@@ -135,8 +134,8 @@ const EditPost = ({ postId }) => {
               fullWidth
               multiline
               rows={6}
-              value={formData.content}  // 表单填充内容
-              onChange={handleChange}  // 处理内容变化
+              value={formData.content} 
+              onChange={handleChange}
             />
           </Grid>
         </Grid>
@@ -148,9 +147,9 @@ const EditPost = ({ postId }) => {
               label="New Hashtag"
               name="newHashtag"
               fullWidth
-              value={formData.newHashtag}  // 当前新标签输入框的值
-              onChange={handleChange}  // 更新新标签输入框的状态
-              onKeyDown={(e) => e.key === "Enter" && handleAddHashtag()}  // 按Enter键添加标签
+              value={formData.newHashtag}  
+              onChange={handleChange}
+              onKeyDown={(e) => e.key === "Enter" && handleAddHashtag()} 
             />
           </Grid>
           <Grid item xs={2}>
@@ -165,9 +164,9 @@ const EditPost = ({ postId }) => {
           {formData.hashtags.map((hashtag, index) => (
             <Chip
               key={index}
-              label={hashtag}  // 显示每个标签
-              onDelete={() => handleRemoveHashtag(hashtag)}  // 删除标签的处理函数
-              deleteIcon={<Close />}  // 删除图标
+              label={hashtag} 
+              onDelete={() => handleRemoveHashtag(hashtag)}
+              deleteIcon={<Close />} 
               color="primary"
               sx={{ fontSize: "14px", backgroundColor: "#e0f7fa" }}
             />
