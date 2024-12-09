@@ -46,12 +46,17 @@ const EditPost = ({ postId, onPostUpdated  }) => {
   };
 
   const handleAddHashtag = () => {
-    if (formData.newHashtag && !formData.hashtags.includes(formData.newHashtag)) {
-      setFormData((prevData) => ({
-        ...prevData,
-        hashtags: [...prevData.hashtags, formData.newHashtag],
-        newHashtag: "",
-      }));
+    if (formData.newHashtag) {
+      const sanitizedHashtag = formData.newHashtag.trim().replace(/^#/, "");
+      if (sanitizedHashtag && !formData.hashtags.includes(sanitizedHashtag)) {
+        setFormData((prevData) => ({
+          ...prevData,
+          hashtags: [...prevData.hashtags, sanitizedHashtag],
+          newHashtag: "",
+        }));
+      } else {
+        alert("Please input a valid and unique tag!");
+      }
     }
   };
 

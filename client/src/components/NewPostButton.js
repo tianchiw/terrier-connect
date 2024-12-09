@@ -42,14 +42,15 @@ const NewPostModal = ({ open, handleClose }) => {
 
   // Add new hashtag to the list
   const handleAddHashtag = () => {
-    if (formData.newHashtag.trim() !== "" && !formData.hashtags.includes(formData.newHashtag)) {
+    const sanitizedHashtag = formData.newHashtag.trim().replace(/^#/, ""); // Remove # from the beginning
+    if (sanitizedHashtag !== "" && !formData.hashtags.includes(sanitizedHashtag)) {
       setFormData({
         ...formData,
-        hashtags: [...formData.hashtags, formData.newHashtag.trim()],
+        hashtags: [...formData.hashtags, sanitizedHashtag],
         newHashtag: "", // Clear the input field after adding
       });
     } else {
-      alert("Please input practical tag!");
+      alert("Please input a valid and unique tag!");
     }
   };
 
