@@ -125,6 +125,13 @@ const Index = () => {
     alert("You have been logged out.");
   };
 
+  // Handle key press for login
+  const handleKeyPress = (event) => {
+    if (event.key === "Enter") {
+      handleLogin();
+    }
+  };
+
   return (
     <Box
       sx={{
@@ -163,6 +170,7 @@ const Index = () => {
                 label="BU Email"
                 value={loginForm.email}
                 onChange={handleLoginChange}
+                onKeyUp={handleKeyPress}
                 sx={{ mb: 2 }}
               />
               <TextField
@@ -173,6 +181,7 @@ const Index = () => {
                 type="password"
                 value={loginForm.password}
                 onChange={handleLoginChange}
+                onKeyUp={handleKeyPress}
                 sx={{ mb: 3 }}
               />
               <Button

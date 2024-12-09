@@ -356,7 +356,7 @@ const PostWithID = () => {
           <Grid item xs={12} md={10}>
             <Box sx={{ padding: 2 }}>
               <Typography variant="h4" sx={{ marginBottom: 2 }}>
-              Post Details
+                {post.title}
               </Typography>
               {post.image_url && (
           <Box

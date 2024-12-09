@@ -19,7 +19,7 @@ import MapView from "./MapSelection";
 const NewPostModal = ({ open, handleClose }) => {
   const [formData, setFormData] = useState({
     title: "",
-    eventLocation: "",
+    eventLocation: "[-71.10540390014648, 42.35050441261373]",
     content: "",
     hashtags: [], // Example initial hashtags
     image_url: null,
@@ -110,6 +110,12 @@ const NewPostModal = ({ open, handleClose }) => {
         newHashtag: "",
       });
       handleClose();
+
+      // Refresh the page after successful submission
+      setTimeout(() => {
+        window.location.reload();
+      }, 500); // Add a slight delay to let the success message show
+      
     } catch (error) {
       console.error("Error creating post:", error.response || error.message);
       alert("Posting failed, please check your input!");
@@ -129,6 +135,8 @@ const NewPostModal = ({ open, handleClose }) => {
     if (!isMapOn) {
       // Reset event location and selected coordinates when map is off
       setFormData({ ...formData, eventLocation: "" });
+    } else {
+      setFormData({ ...formData, eventLocation: "[-71.10540390014648, 42.35050441261373]" });
     }
   };
 
@@ -249,7 +257,7 @@ const NewPostModal = ({ open, handleClose }) => {
                 color="primary"
               />
             }
-            label="Enable Map Selection"
+            label="Include Map Location"
             sx={{ mb: 2 }}
           />
 
