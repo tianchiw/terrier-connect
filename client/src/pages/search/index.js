@@ -26,7 +26,7 @@ const PostSearch = () => {
   const [error, setError] = useState(null);
   const [page, setPage] = useState(1); // Current page
   const [totalPages, setTotalPages] = useState(1); // Total pages
-  const [pageSize, setPageSize] = useState(3); // Results per page
+  const [pageSize, setPageSize] = useState(10); // Results per page
   const navigate = useNavigate();
   const location = useLocation();
 
