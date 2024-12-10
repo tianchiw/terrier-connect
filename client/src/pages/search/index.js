@@ -152,9 +152,14 @@ const PostSearch = () => {
               >
                 <ListItemText
                   primary={
+                    <>
                     <Typography variant="h6" sx={{ fontWeight: "bold" }}>
-                      {post.content.substring(0, 50)}...
+                      {post.title ? post.title.substring(0, 50) : "Untitled"}
                     </Typography>
+                    <Typography variant="body2" color="textSecondary" sx={{ display: "block" }}>
+                    {post.content ? post.content.substring(0, 50) : "No content available"}...
+                  </Typography>
+                  </>
                   }
                   secondary={
                     <Box>
