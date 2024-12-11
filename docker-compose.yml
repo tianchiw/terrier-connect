@@ -4,38 +4,45 @@ services:
   client:
     build:
       context: ./client
-      dockerfile: dockerfile
+    image: client-tc
+    container_name: client
     ports:
-      - "3000:3000"
-    stdin_open: true
-    environment:
-      - CHOKIDAR_USEPOLLING=true
-    volumes:
-      - ./client:/app
+      - "3002:80"
     depends_on:
       - server
+    # Need to customize the nginx config for production
+    volumes:
+      - ./client/nginx_conf/nginx_prod.conf:/etc/nginx/nginx.conf
 
   server:
     build:
       context: ./server
-      dockerfile: dockerfile
+    command: gunicorn terrierconnect.wsgi:application --bind 0.0.0.0:8000
+    image: server-tc
+    container_name: server
     ports:
       - "8000:8000"
+    env_file:
+      - ./server/.env
     volumes:
       - ./server:/app
     environment:
       - DEBUG=1
-    depends_on:
-      - db
+    # depends_on:
+    #   - db
 
-  db:
-    image: postgres:13
-    environment:
-      POSTGRES_DB: terrierdb
-      POSTGRES_USER: terrier
-      POSTGRES_PASSWORD: terrierpass
-    volumes:
-      - db_data:/var/lib/postgresql/data
+# Currently can use dev DB, don't commit the password to the repo
+#   db:
+#     image: postgres:17
+#     environment:
+#       - POSTGRES_USER=postgres
+#       - POSTGRES_PASSWORD=
+#       - POSTGRES_DB=terrier-connect-dev
+#     ports:
+#       - "5432:5432"
+#     volumes:
+#       - db_data:/var/lib/postgresql/data
+#     restart: unless-stopped
 
-volumes:
-  db_data:
+# volumes:
+#   db_data:

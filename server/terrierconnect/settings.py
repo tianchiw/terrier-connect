@@ -19,6 +19,8 @@ load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 MEDIA_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -36,7 +38,7 @@ SECRET_KEY = "django-insecure-6b$8-s658#p-ml(8k+1uiyw#=uq-6=igl+g_9!)*wisslc4a7o
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [os.getenv('SERVER_HOST')]
 
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
